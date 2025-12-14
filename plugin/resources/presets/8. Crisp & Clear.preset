@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<MLGuitarAmp presetName="Crisp Clean" version="1.0.0" presetPath="" currentMainKnobID="reverb"
+             irVisibility="0" lastPresetButton="0" lastBottomButton="4" presetVisibility="1"
+             irOption="14" customIROption="36" savedButton="reverb" p1n="Clean Humbucker"
+             p2n="Factory 2" p3n="Factory 3" p4n="Factory 4" p5n="Factory 5"
+             lastTouchedDropdown="1" lastIR="14" customIR="/Users/alexwhitcombe/Desktop/Quantum DSP/Hybrid IR Libraries/Classic Rock Revival Hybrid IR&#8482; Libraries Pack/Impulse Responses - 500ms - Wav/QCR06-MAGICK.wav"
+             firstLoad="0">
+  <PARAM id="amp gain" value="1.5"/>
+  <PARAM id="amp smooth" value="0"/>
+  <PARAM id="boost gain" value="1.0"/>
+  <PARAM id="custom ir selection" value="1.0"/>
+  <PARAM id="eq state" value="0"/>
+  <PARAM id="gain state" value="0"/>
+  <PARAM id="gate state" value="0"/>
+  <PARAM id="input gain" value="-1.799999237060547"/>
+  <PARAM id="ir selection" value="13"/>
+  <PARAM id="ir visibility" value="0.0"/>
+  <PARAM id="is amp 1" value="1"/>
+  <PARAM id="is boost" value="0.0"/>
+  <PARAM id="model id" value="0.0"/>
+  <PARAM id="noise gate" value="-80.0"/>
+  <PARAM id="output gain" value="9.100000381469727"/>
+  <PARAM id="p1 state" value="1.0"/>
+  <PARAM id="p2 state" value="0"/>
+  <PARAM id="p3 state" value="0"/>
+  <PARAM id="p4 state" value="0"/>
+  <PARAM id="p5 state" value="0"/>
+  <PARAM id="presence" value="5.0"/>
+  <PARAM id="reverb" value="0.07000000029802322"/>
+  <PARAM id="reverb state" value="0"/>
+  <PARAM id="thickness" value="0.9000000953674316"/>
+</MLGuitarAmp>

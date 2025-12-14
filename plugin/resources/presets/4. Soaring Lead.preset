@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<MLGuitarAmp presetName="sweet slash" version="1.0.0" presetPath="" currentMainKnobID="amp gain"
+             irVisibility="0" lastPresetButton="1" lastBottomButton="0" presetVisibility="0"
+             irOption="14" customIROption="17" savedButton="gain" p1n="OH TEST"
+             p2n="VERB MAX" p3n="KICKASS" p4n="Test" p5n="Test" lastTouchedDropdown="1"
+             lastIR="14">
+  <PARAM id="amp gain" value="7.5"/>
+  <PARAM id="amp smooth" value="0"/>
+  <PARAM id="boost gain" value="1.0"/>
+  <PARAM id="custom ir selection" value="1.0"/>
+  <PARAM id="eq state" value="0"/>
+  <PARAM id="gain state" value="0"/>
+  <PARAM id="gate state" value="0"/>
+  <PARAM id="input gain" value="0.4000003039836884"/>
+  <PARAM id="ir selection" value="13"/>
+  <PARAM id="ir visibility" value="0.0"/>
+  <PARAM id="is amp 1" value="0"/>
+  <PARAM id="is boost" value="0.0"/>
+  <PARAM id="model id" value="0.0"/>
+  <PARAM id="noise gate" value="-70.40000152587891"/>
+  <PARAM id="output gain" value="5.300000190734863"/>
+  <PARAM id="p1 state" value="0"/>
+  <PARAM id="p2 state" value="0.0"/>
+  <PARAM id="p3 state" value="0"/>
+  <PARAM id="p4 state" value="0"/>
+  <PARAM id="p5 state" value="0"/>
+  <PARAM id="presence" value="-1.49999988079071"/>
+  <PARAM id="reverb" value="0.3199999928474426"/>
+  <PARAM id="reverb state" value="0"/>
+  <PARAM id="thickness" value="-2.799999952316284"/>
+</MLGuitarAmp>

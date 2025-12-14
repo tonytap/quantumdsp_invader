@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<MLGuitarAmp presetName="SRV Tone" version="1.0.0" presetPath="" currentMainKnobID="reverb"
+             irVisibility="0" lastPresetButton="0" lastBottomButton="4" presetVisibility="1"
+             irOption="4" customIROption="0" savedButton="reverb" p1n="Factory 1"
+             p2n="Factory 2" p3n="Factory 3" p4n="Factory 4" p5n="Factory 5"
+             lastTouchedDropdown="1" lastIR="4" firstLoad="1">
+  <PARAM id="amp gain" value="4.5"/>
+  <PARAM id="amp smooth" value="0"/>
+  <PARAM id="boost gain" value="1.0"/>
+  <PARAM id="custom ir selection" value="1.0"/>
+  <PARAM id="eq state" value="0"/>
+  <PARAM id="gain state" value="0"/>
+  <PARAM id="gate state" value="0"/>
+  <PARAM id="input gain" value="0.0"/>
+  <PARAM id="ir selection" value="3"/>
+  <PARAM id="ir visibility" value="0.0"/>
+  <PARAM id="is amp 1" value="0"/>
+  <PARAM id="is boost" value="0.0"/>
+  <PARAM id="model id" value="0.0"/>
+  <PARAM id="noise gate" value="-72.40000152587891"/>
+  <PARAM id="output gain" value="0.0"/>
+  <PARAM id="p1 state" value="1.0"/>
+  <PARAM id="p2 state" value="0"/>
+  <PARAM id="p3 state" value="0"/>
+  <PARAM id="p4 state" value="0"/>
+  <PARAM id="p5 state" value="0"/>
+  <PARAM id="presence" value="-1.299999713897705"/>
+  <PARAM id="reverb" value="0.2800000011920929"/>
+  <PARAM id="reverb state" value="0"/>
+  <PARAM id="thickness" value="0.7000002861022949"/>
+</MLGuitarAmp>

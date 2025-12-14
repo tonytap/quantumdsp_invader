@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<MLGuitarAmp presetName="Heavy Metal Rhythm" version="1.0.0" presetPath=""
+             currentMainKnobID="amp gain" irVisibility="0" lastPresetButton="3"
+             lastBottomButton="0" presetVisibility="0" irOption="5" customIROption="0"
+             savedButton="gain" p1n="OH TEST" p2n="VERB MAX" p3n="Metal Lead"
+             p4n="midrange grunge" p5n="Test" lastTouchedDropdown="1" lastIR="5"
+             firstLoad="1">
+  <PARAM id="amp gain" value="10.0"/>
+  <PARAM id="amp smooth" value="0"/>
+  <PARAM id="boost gain" value="1.0"/>
+  <PARAM id="custom ir selection" value="1.0"/>
+  <PARAM id="eq state" value="0"/>
+  <PARAM id="gain state" value="0"/>
+  <PARAM id="gate state" value="0"/>
+  <PARAM id="input gain" value="2.980232238769531e-7"/>
+  <PARAM id="ir selection" value="4"/>
+  <PARAM id="ir visibility" value="0.0"/>
+  <PARAM id="is amp 1" value="0"/>
+  <PARAM id="is boost" value="0.0"/>
+  <PARAM id="model id" value="0.0"/>
+  <PARAM id="noise gate" value="-79.80000305175781"/>
+  <PARAM id="output gain" value="2.980232238769531e-7"/>
+  <PARAM id="p1 state" value="0"/>
+  <PARAM id="p2 state" value="0"/>
+  <PARAM id="p3 state" value="0"/>
+  <PARAM id="p4 state" value="0"/>
+  <PARAM id="p5 state" value="0"/>
+  <PARAM id="presence" value="2.500000238418579"/>
+  <PARAM id="reverb" value="0.1799999922513962"/>
+  <PARAM id="reverb state" value="0"/>
+  <PARAM id="thickness" value="0.1000000908970833"/>
+</MLGuitarAmp>

@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<MLGuitarAmp presetName="J6 - Rokk" version="1.0.0" currentMainKnobID="noise gate"
+             lastTouchedDropdown="1" lastIR="3" lastBottomButton="1" presetPath=""
+             irVisibility="0" lastPresetButton="1" presetVisibility="1" p1n="Factory 1"
+             p2n="Default" p3n="Factory 3" p4n="Factory 4" p5n="Factory 5"
+             firstLoad="1" irOption="3" customIROption="17" savedButton="gate">
+  <PARAM id="amp 1 knob visibility" value="0.0"/>
+  <PARAM id="amp boost knob visibility" value="0.0"/>
+  <PARAM id="amp gain" value="7.0"/>
+  <PARAM id="amp smooth" value="0"/>
+  <PARAM id="boost gain" value="1.0"/>
+  <PARAM id="custom ir selection" value="1.0"/>
+  <PARAM id="eq presence knob visibility" value="0.0"/>
+  <PARAM id="eq thickness knob visibility" value="0.0"/>
+  <PARAM id="gate knob visibility" value="0.0"/>
+  <PARAM id="input gain" value="2.980232238769531e-7"/>
+  <PARAM id="ir knob visibility" value="0.0"/>
+  <PARAM id="ir selection" value="2"/>
+  <PARAM id="is amp 1" value="1.0"/>
+  <PARAM id="is boost" value="0.0"/>
+  <PARAM id="is thickness eq" value="1.0"/>
+  <PARAM id="model id" value="0.0"/>
+  <PARAM id="noise gate" value="-68.09999847412109"/>
+  <PARAM id="output gain" value="2.980232238769531e-7"/>
+  <PARAM id="presence" value="1.400000095367432"/>
+  <PARAM id="preset selection" value="1.0"/>
+  <PARAM id="reverb" value="0.0"/>
+  <PARAM id="reverb knob visibility" value="0.0"/>
+  <PARAM id="thickness" value="-1.699999928474426"/>
+  <PARAM id="eq state" value="0"/>
+  <PARAM id="gain state" value="0"/>
+  <PARAM id="gate state" value="0"/>
+  <PARAM id="ir visibility"/>
+  <PARAM id="p1 state"/>
+  <PARAM id="p2 state"/>
+  <PARAM id="p3 state"/>
+  <PARAM id="p4 state"/>
+  <PARAM id="p5 state"/>
+  <PARAM id="reverb state" value="0"/>
+</MLGuitarAmp>
