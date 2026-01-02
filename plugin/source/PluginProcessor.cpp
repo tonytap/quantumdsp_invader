@@ -33,25 +33,15 @@ mResampler2(48000.0),
 irResampler(48000.0)
 #endif
 {
-    AppConfig appConfig( "Invader", "1.0.5" );
-    auto pConfiguration = appConfig.createLicenseSpringConfig();
-    licenseManager = LicenseSpring::LicenseManager::create( pConfiguration );
-    auto license = licenseManager->getCurrentLicense();
-    if (license != nullptr) {
-        try {
-            // Perform an online license check to update the local license state
-            license->check();
-            licenseActivated.store(license != nullptr && license->isValid());
-        } catch (const std::exception& ex) {
-            licenseActivated.store(false);
-        }
-    }
-    else {
-        licenseActivated.store(false);
-    }
-    licenseVisibility.store(license == nullptr || license->isTrial());
+    // Initialize preset button names with first 5 factory presets
+    p1n = factoryPresets[0];
+    p2n = factoryPresets[1];
+    p3n = factoryPresets[2];
+    p4n = factoryPresets[3];
+    p5n = factoryPresets[4];
+
     valueTreeState.state.setProperty(Service::PresetManager::presetNameProperty, "", nullptr);
-    valueTreeState.state.setProperty("version", "1.0.5", nullptr);
+    valueTreeState.state.setProperty("version", "1.2.0", nullptr);
     valueTreeState.state.setProperty("presetPath", "", nullptr);
     presetManager = std::make_unique<Service::PresetManager>(valueTreeState);
     if (models.empty()) {
@@ -95,6 +85,34 @@ irResampler(48000.0)
     }
     thicknessParameter = valueTreeState.getRawParameterValue("thickness");
     presenceParameter = valueTreeState.getRawParameterValue("presence");
+
+    // Initialize LicenseSpring
+    AppConfig appConfig( "Invader", "1.2.0" );
+    auto pConfiguration = appConfig.createLicenseSpringConfig();
+    licenseManager = LicenseSpring::LicenseManager::create( pConfiguration );
+    auto license = licenseManager->getCurrentLicense();
+    if (license != nullptr) {
+        try {
+            license->check();
+            licenseActivated.store(license != nullptr && license->isValid());
+        } catch (const std::exception& ex) {
+            licenseActivated.store(false);
+        }
+    }
+    else {
+        licenseActivated.store(false);
+    }
+    licenseVisibility.store(license == nullptr || license->isTrial());
+
+    delayMixParam = valueTreeState.getRawParameterValue("delay mix");
+    delayFeedbackParam = valueTreeState.getRawParameterValue("delay feedback");
+    delayTimingParam = valueTreeState.getRawParameterValue("delay timing");
+
+    // Initialize delay objects for each channel
+    channelDelays.resize(2);
+    for (int ch = 0; ch < getTotalNumInputChannels(); ch++) {
+        channelDelays[ch] = std::make_unique<Delay>(48000.0);
+    }
 }
 
 EqAudioProcessor::~EqAudioProcessor()
@@ -142,95 +160,95 @@ std::tuple<std::unique_ptr<juce::XmlElement>, juce::File> EqAudioProcessor::writ
 }
 
 void EqAudioProcessor::loadFactoryPresets(int i) {
-    juce::String name = factoryPresets[i];
-    const void* data;
-    int size;
-    if (i == 0) {
-        data = BinaryData::_1__The_Rocker_preset;
-        size = BinaryData::_1__The_Rocker_presetSize;
-    }
-    else if (i == 1) {
-        data = BinaryData::_2__Capt__Crunch_preset;
-        size = BinaryData::_2__Capt__Crunch_presetSize;
-    }
-    else if (i == 2) {
-        data = BinaryData::_3__EhISee_preset;
-        size = BinaryData::_3__EhISee_presetSize;
-    }
-    else if (i == 3) {
-        data = BinaryData::_4__Soaring_Lead_preset;
-        size = BinaryData::_4__Soaring_Lead_presetSize;
-    }
-    else if (i == 4) {
-        data = BinaryData::_5__Cleaning_Up_preset;
-        size = BinaryData::_5__Cleaning_Up_presetSize;
-    }
-    else if (i == 5) {
-        data = BinaryData::_6__Sweet_Tea_Blues_preset;
-        size = BinaryData::_6__Sweet_Tea_Blues_presetSize;
-    }
-    else if (i == 6) {
-        data = BinaryData::_7__Rokk_preset;
-        size = BinaryData::_7__Rokk_presetSize;
-    }
-    else if (i == 7) {
-        data = BinaryData::_8__Crisp__Clear_preset;
-        size = BinaryData::_8__Crisp__Clear_presetSize;
-    }
-    else if (i == 8) {
-        data = BinaryData::_9__Modern_Singles_preset;
-        size = BinaryData::_9__Modern_Singles_presetSize;
-    }
-    else if (i == 9) {
-        data = BinaryData::_10__Modern_Rhythms_preset;
-        size = BinaryData::_10__Modern_Rhythms_presetSize;
-    }
-    else if (i == 10) {
-        data = BinaryData::_11__Anger_Management_preset;
-        size = BinaryData::_11__Anger_Management_presetSize;
-    }
-    else if (i == 11) {
-        data = BinaryData::_12__Psychedlica_preset;
-        size = BinaryData::_12__Psychedlica_presetSize;
-    }
-    else if (i == 12) {
-        data = BinaryData::_13__Flying_Solo_preset;
-        size = BinaryData::_13__Flying_Solo_presetSize;
-    }
-    else if (i == 13) {
-        data = BinaryData::_14__Texas_Blooze_preset;
-        size = BinaryData::_14__Texas_Blooze_presetSize;
-    }
-    else if (i == 14) {
-        data = BinaryData::_15__Vibin_preset;
-        size = BinaryData::_15__Vibin_presetSize;
-    }
-    else if (i == 15) {
-        data = BinaryData::_16__Dreamscape_preset;
-        size = BinaryData::_16__Dreamscape_presetSize;
-    }
-    else if (i == 16) {
-        data = BinaryData::_17__Thrasher_preset;
-        size = BinaryData::_17__Thrasher_presetSize;
-    }
-    else if (i == 17) {
-        data = BinaryData::_18__Down_Under_preset;
-        size = BinaryData::_18__Down_Under_presetSize;
-    }
-    name += ".preset";
-    if (data != nullptr && size > 0)
-    {
-        auto [xml, tempFile] = writePresetBinaryDataToTempFile(data, size, name);
-        juce::String tempFilePath = tempFile.getFullPathName();
-        juce::File file(tempFilePath);
-        if (!file.existsAsFile())
-        {
-            juce::Logger::writeToLog("Error: File does not exist at " + tempFilePath);
-        }
-        else {
-            presetManager->saveFactoryPreset(file.getFileNameWithoutExtension(), std::move(xml));
-        }
-    }
+     juce::String name = factoryPresets[i];
+     const void* data;
+     int size;
+     if (i == 0) {
+         data = BinaryData::_1__The_Rocker_preset;
+         size = BinaryData::_1__The_Rocker_presetSize;
+     }
+     else if (i == 1) {
+         data = BinaryData::_2__Capt__Crunch_preset;
+         size = BinaryData::_2__Capt__Crunch_presetSize;
+     }
+     else if (i == 2) {
+         data = BinaryData::_3__EhISee_preset;
+         size = BinaryData::_3__EhISee_presetSize;
+     }
+     else if (i == 3) {
+         data = BinaryData::_4__Soaring_Lead_preset;
+         size = BinaryData::_4__Soaring_Lead_presetSize;
+     }
+     else if (i == 4) {
+         data = BinaryData::_5__Cleaning_Up_preset;
+         size = BinaryData::_5__Cleaning_Up_presetSize;
+     }
+     else if (i == 5) {
+         data = BinaryData::_6__Sweet_Tea_Blues_preset;
+         size = BinaryData::_6__Sweet_Tea_Blues_presetSize;
+     }
+     else if (i == 6) {
+         data = BinaryData::_7__Rokk_preset;
+         size = BinaryData::_7__Rokk_presetSize;
+     }
+     else if (i == 7) {
+         data = BinaryData::_8__Crisp__Clear_preset;
+         size = BinaryData::_8__Crisp__Clear_presetSize;
+     }
+     else if (i == 8) {
+         data = BinaryData::_9__Modern_Singles_preset;
+         size = BinaryData::_9__Modern_Singles_presetSize;
+     }
+     else if (i == 9) {
+         data = BinaryData::_10__Modern_Rhythms_preset;
+         size = BinaryData::_10__Modern_Rhythms_presetSize;
+     }
+     else if (i == 10) {
+         data = BinaryData::_11__Anger_Management_preset;
+         size = BinaryData::_11__Anger_Management_presetSize;
+     }
+     else if (i == 11) {
+         data = BinaryData::_12__Psychedlica_preset;
+         size = BinaryData::_12__Psychedlica_presetSize;
+     }
+     else if (i == 12) {
+         data = BinaryData::_13__Flying_Solo_preset;
+         size = BinaryData::_13__Flying_Solo_presetSize;
+     }
+     else if (i == 13) {
+         data = BinaryData::_14__Texas_Blooze_preset;
+         size = BinaryData::_14__Texas_Blooze_presetSize;
+     }
+     else if (i == 14) {
+         data = BinaryData::_15__Vibin_preset;
+         size = BinaryData::_15__Vibin_presetSize;
+     }
+     else if (i == 15) {
+         data = BinaryData::_16__Dreamscape_preset;
+         size = BinaryData::_16__Dreamscape_presetSize;
+     }
+     else if (i == 16) {
+         data = BinaryData::_17__Thrasher_preset;
+         size = BinaryData::_17__Thrasher_presetSize;
+     }
+     else if (i == 17) {
+         data = BinaryData::_18__Down_Under_preset;
+         size = BinaryData::_18__Down_Under_presetSize;
+     }
+     name += ".preset";
+     if (data != nullptr && size > 0)
+     {
+         auto [xml, tempFile] = writePresetBinaryDataToTempFile(data, size, name);
+         juce::String tempFilePath = tempFile.getFullPathName();
+         juce::File file(tempFilePath);
+         if (!file.existsAsFile())
+         {
+             juce::Logger::writeToLog("Error: File does not exist at " + tempFilePath);
+         }
+         else {
+             presetManager->saveFactoryPreset(file.getFileNameWithoutExtension(), std::move(xml));
+         }
+     }
 }
 
 void EqAudioProcessor::loadModel(const int amp_idx, double gainLvl, unsigned long i) {
@@ -722,6 +740,11 @@ void EqAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
     irResampler.Reset(projectSr, BUFFERSIZE);
     resampleFactoryIRs(projectSr);
     resampleUserIRs(projectSr);
+
+    // Reset delay for new sample rate
+    for (int ch = 0; ch < getTotalNumInputChannels(); ch++) {
+        channelDelays[ch]->reset(sampleRate);
+    }
 }
 
 void EqAudioProcessor::resampleFactoryIRs(double targetSr)
@@ -780,12 +803,13 @@ void EqAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::Mid
     
     for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
         buffer.clear (i, 0, buffer.getNumSamples());
-    float* chL = buffer.getWritePointer(0);
-    float* chR = nullptr;
-    if (totalNumInputChannels > 1) {
-        chR = buffer.getWritePointer(1);
-    }
+
     if (licenseActivated.load() && !licenseVisibility.load()) {
+        float* chL = buffer.getWritePointer(0);
+        float* chR = nullptr;
+        if (totalNumInputChannels > 1) {
+            chR = buffer.getWritePointer(1);
+        }
         float input_gain = valueTreeState.getParameterAsValue("input gain").getValue();
         inputGain.setTargetValue(pow(10, input_gain/10));
         for (int ch = 0; ch < totalNumInputChannels; ch++) {
@@ -922,14 +946,22 @@ void EqAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::Mid
             auto* channelData = buffer.getWritePointer (channel);
             for (int i = 0; i < buffer.getNumSamples(); i++) {
                 float x = channelData[i];
-                PN150.setValues(thicknessGain.getNextValue(), "g");
+                float thicknessVal = thicknessGain.getNextValue();  // -6 to +6 dB
+                float presenceVal = presenceGain.getNextValue();    // -6 to +6 dB
+
+                // Apply Thickness EQ
+                PN150.setValues(thicknessVal, "g");
                 float y150 = PN150.applyPN(x, channel);
-                PN800.setValues(2*thicknessGain.getNextValue(), "g");
+                PN800.setValues(2.0f * thicknessVal, "g");
                 float y800 = PN800.applyPN(y150, channel);
-                PN4k.setValues(2*presenceGain.getNextValue(), "g");
+
+                // Apply Presence EQ
+                PN4k.setValues(2.0f * presenceVal, "g");
                 float y4k = PN4k.applyPN(y800, channel);
-                HS5k.setValues(2.0+presenceGain.getNextValue(), "g");
+                HS5k.setValues(2.0f + presenceVal, "g");
                 float y5k = HS5k.applyHS(y4k, channel);
+
+                // Apply global EQ
                 float yGlobalEQ = GlobalEQ.applyPN(y5k, channel);
                 channelData[i] = yGlobalEQ;
             }
@@ -959,6 +991,53 @@ void EqAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::Mid
                 }
             }
         }
+
+        // DELAY (after reverb, before output gain)
+        if (auto* playHead = getPlayHead())
+        {
+            juce::AudioPlayHead::CurrentPositionInfo positionInfo;
+            if (playHead->getCurrentPosition(positionInfo) && positionInfo.bpm > 0)
+            {
+                double bpm = positionInfo.bpm;
+                double beatsPerSec = bpm/60;
+                double samplesPerBeat = sr*(60.0/bpm);
+
+                // Calculate delay samples based on timing parameter
+                // t = triplet (2/3), d = dotted (1.5x)
+                int timingIndex = delayTimingParam->load();
+                double beatDivision = 1.0; // default
+                switch(timingIndex) {
+                    case 0: beatDivision = 0.125 * (2.0/3.0); break;  // 1/32t
+                    case 1: beatDivision = 0.125; break;               // 1/32
+                    case 2: beatDivision = 0.25 * (2.0/3.0); break;   // 1/16t
+                    case 3: beatDivision = 0.125 * 1.5; break;         // 1/32d
+                    case 4: beatDivision = 0.25; break;                // 1/16
+                    case 5: beatDivision = 0.5 * (2.0/3.0); break;    // 1/8t
+                    case 6: beatDivision = 0.25 * 1.5; break;          // 1/16d
+                    case 7: beatDivision = 0.5; break;                 // 1/8
+                    case 8: beatDivision = 1.0 * (2.0/3.0); break;    // 1/4t
+                    case 9: beatDivision = 0.5 * 1.5; break;           // 1/8d
+                    case 10: beatDivision = 1.0; break;                // 1/4
+                    case 11: beatDivision = 2.0 * (2.0/3.0); break;   // 1/2t
+                    case 12: beatDivision = 1.0 * 1.5; break;          // 1/4d
+                    case 13: beatDivision = 4.0 * (2.0/3.0); break;   // 1/1t
+                    case 14: beatDivision = 2.0; break;                // 1/2
+                    case 15: beatDivision = 2.0 * 1.5; break;          // 1/2d
+                    case 16: beatDivision = 4.0; break;                // 1/1
+                    default: beatDivision = 1.0; break;
+                }
+
+                int delaySamples = (int)(samplesPerBeat * beatDivision);
+
+                auto *data = buffer.getWritePointer(0);
+                channelDelays[0]->FB = delayFeedbackParam->load();
+                channelDelays[0]->process(data, buffer.getNumSamples(), delaySamples, delayMixParam->load());
+                data = buffer.getWritePointer(1);
+                channelDelays[1]->FB = channelDelays[0]->FB;
+                channelDelays[1]->process(data, buffer.getNumSamples(), delaySamples, delayMixParam->load());
+            }
+        }
+
         float output_gain = valueTreeState.getParameterAsValue("output gain").getValue();
         outputGain.setTargetValue(pow(10, output_gain/20));
         for (int ch = 0; ch < totalNumInputChannels; ch++) {
@@ -993,6 +1072,7 @@ void EqAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::Mid
         }
     }
     else {
+        // Clear buffer when license is not activated or license page is visible
         for (int ch = 0; ch < totalNumInputChannels; ch++) {
             auto* channelData = buffer.getWritePointer(ch);
             for (int s = 0; s < buffer.getNumSamples(); s++) {
@@ -1112,6 +1192,24 @@ void EqAudioProcessor::setStateInformation (const void* data, int sizeInBytes)
             else {
                 lastBottomButton = state.getProperty("lastBottomButton");
             }
+            if (!state.hasProperty("lastPage1Button")) {
+                lastPage1Button = 0;
+            }
+            else {
+                lastPage1Button = state.getProperty("lastPage1Button");
+            }
+            if (!state.hasProperty("lastPage2Button")) {
+                lastPage2Button = 6;
+            }
+            else {
+                lastPage2Button = state.getProperty("lastPage2Button");
+            }
+            if (!state.hasProperty("lastDelayButton")) {
+                lastDelayButton = 0;
+            }
+            else {
+                lastDelayButton = state.getProperty("lastDelayButton");
+            }
             if(!state.hasProperty("presetVisibility")) {
                 presetVisibility = false;
             }
@@ -1198,7 +1296,7 @@ void EqAudioProcessor::setButtonState(int lastBottomButton, int lastPresetButton
 
 void EqAudioProcessor::setAmp() {
     int start_idx = std::nan("-1");
-    bool ampState = valueTreeState.getParameterAsValue("is amp 1").getValue();
+    bool ampState = valueTreeState.getParameterAsValue("is gain 2").getValue();
     if (!ampState) {
         start_idx = models.size()/2;
     }

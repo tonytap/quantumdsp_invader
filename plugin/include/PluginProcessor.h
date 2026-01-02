@@ -13,6 +13,7 @@
 #include "pn.h"
 #include "shelf.h"
 #include "reverb.h"
+#include "delay.h"
 #include "../NeuralAmpModelerCore/NAM/dsp.h"
 #include "../NeuralAmpModelerCore/NAM/wavenet.h"
 #include "../dsp/NoiseGate.h"
@@ -80,8 +81,9 @@ public:
     /*static*/ std::vector<std::shared_ptr<nam::DSP>> models;
     /*static*/ std::vector<std::shared_ptr<dsp::ImpulseResponse>> factoryIRs;
     std::vector<std::shared_ptr<dsp::ImpulseResponse>> originalFactoryIRs;
-    
+
     std::atomic<bool> licenseVisibility {false};
+
     PeakNotch PN150;
     PeakNotch PN800;
     PeakNotch PN4k;
@@ -91,6 +93,10 @@ public:
     std::atomic<float>* thicknessParameter  = nullptr;
     std::atomic<float>* presenceParameter  = nullptr;
     struct SchroederReverb *Hall = initReverb(1.f, 0.f, 0.55f, 0.9f);
+    std::vector<std::unique_ptr<Delay>> channelDelays;
+    std::atomic<float>* delayMixParam = nullptr;
+    std::atomic<float>* delayFeedbackParam = nullptr;
+    std::atomic<float>* delayTimingParam = nullptr;
     std::shared_ptr<nam::DSP> amp1_dsp = nullptr;
     std::shared_ptr<nam::DSP> amp1_model = nullptr;
     std::shared_ptr<nam::DSP> old_model;
@@ -214,13 +220,16 @@ public:
     void setMainKnobVal(double val);
     int lastPresetButton = 0;
     int lastBottomButton = 0;
+    int lastPage2Button = 6;
+    int lastPage1Button = 0;
+    int lastDelayButton = 0;
     std::atomic<bool> presetSmoothing { false };
     std::atomic<bool> stateInformationSet { false };
     double sizePortion = 0.75;
-    LicenseSpring::LicenseManager::ptr_t licenseManager;
-    std::atomic<bool> licenseActivated { false };
     double projectSr = 48000.0;
     void resampleUserIRs(double projectSr);
+    std::atomic<bool> licenseActivated { false };
+    LicenseSpring::LicenseManager::ptr_t licenseManager;
 private:
     std::atomic<float> smoothMix { 0.f };
     std::unique_ptr<Service::PresetManager> presetManager;

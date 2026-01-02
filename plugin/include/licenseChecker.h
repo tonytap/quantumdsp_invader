@@ -65,13 +65,83 @@ private:
     private:
         juce::AttributedString attributedText; // Store the attributed string
     };
+
+    class CustomTextEditor : public juce::TextEditor
+    {
+    public:
+        class CustomMenuLookAndFeel : public juce::LookAndFeel_V4
+        {
+        public:
+            CustomMenuLookAndFeel()
+            {
+                // Match the dark background color from the dialog
+                juce::Colour bgColour(0x28, 0x28, 0x28);
+                setColour(juce::PopupMenu::backgroundColourId, bgColour);
+                setColour(juce::PopupMenu::textColourId, juce::Colours::white);
+                setColour(juce::PopupMenu::highlightedBackgroundColourId, bgColour.brighter(0.2f));
+                setColour(juce::PopupMenu::highlightedTextColourId, juce::Colours::white);
+            }
+
+            juce::Font getPopupMenuFont() override
+            {
+                // Match the License Key label font (Arial, 16pt)
+                return juce::Font("Arial", 16.0f, juce::Font::plain);
+            }
+        };
+
+        CustomTextEditor()
+        {
+            customLookAndFeel = std::make_unique<CustomMenuLookAndFeel>();
+        }
+
+        void mouseDown(const juce::MouseEvent& e) override
+        {
+            if (e.mods.isPopupMenu())
+            {
+                juce::PopupMenu menu;
+                menu.setLookAndFeel(customLookAndFeel.get());
+
+                bool hasSelection = getHighlightedRegion().getLength() > 0;
+                bool hasText = getTotalNumChars() > 0;
+                bool clipboardHasText = juce::SystemClipboard::getTextFromClipboard().isNotEmpty();
+
+                menu.addItem(1, "Cut", hasSelection);
+                menu.addItem(2, "Copy", hasSelection);
+                menu.addItem(3, "Paste", clipboardHasText);
+                menu.addSeparator();
+                menu.addItem(4, "Select All", hasText);
+
+                auto options = juce::PopupMenu::Options();
+                menu.showMenuAsync(options,
+                    [this](int result)
+                    {
+                        switch (result)
+                        {
+                            case 1: cutToClipboard(); break;
+                            case 2: copyToClipboard(); break;
+                            case 3: pasteFromClipboard(); break;
+                            case 4: selectAll(); break;
+                            default: break;
+                        }
+                    });
+            }
+            else
+            {
+                juce::TextEditor::mouseDown(e);
+            }
+        }
+
+    private:
+        std::unique_ptr<CustomMenuLookAndFeel> customLookAndFeel;
+    };
+
     EqAudioProcessor& audioProcessor;
     LicenseSpring::LicenseManager::ptr_t licenseManager;
     juce::Label labelKeyBased{{}, "For key-based product enter"};
     juce::Label labelKey{{}, "License Key"};
     juce::TextButton activateKeyButton{"Activate"};
     juce::TextButton getTrialButton{"Get trial"};
-    juce::TextEditor keyEditor;
+    CustomTextEditor keyEditor;
 
     StyledLabel labelInfo;
     juce::TextButton deactivateButton{"Deactivate"};
@@ -85,6 +155,6 @@ private:
     void checkLicense();
     void makeInfoVisible();
     void makeActivationVisible();
-    
+
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (LicenseChecker)
 };

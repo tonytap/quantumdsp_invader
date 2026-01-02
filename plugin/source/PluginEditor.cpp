@@ -13,22 +13,18 @@ EqAudioProcessorEditor::EqAudioProcessorEditor (EqAudioProcessor& p, juce::Audio
     : AudioProcessorEditor (&p),
       valueTreeState (vts),
       audioProcessor (p),
-      overlay([this]() { hideLicensePage(); }, p),
       cc(BinaryData::buttonbigdialV4_png, BinaryData::buttonbigdialV4_pngSize, p, vts, BinaryData::rotarydial_V2_png, BinaryData::rotarydial_V2_pngSize),
       resizeButton(BinaryData::resize_png, BinaryData::resize_pngSize, BinaryData::resizehover_png, BinaryData::resizehover_pngSize, p.sizePortion),
       settingsButton(BinaryData::settingsgear_png, BinaryData::settingsgear_pngSize, BinaryData::settingsgearhover_png, BinaryData::settingsgearhover_pngSize, p.sizePortion),
       closeSettingsLabel("", ""),
-     licenseChecker(p.licenseManager, p)
+      overlay([this]() { hideLicensePage(); }, p),
+      licenseChecker(p.licenseManager, p)
 {
     sizePortion = p.sizePortion;
     if (juce::JUCEApplicationBase::isStandaloneApp()) {
         
         addAndMakeVisible(settingsButton);
         settingsButton.addListener(this);
-//        if (auto* pluginHolder = juce::StandalonePluginHolder::getInstance())
-//        {
-//          pluginHolder->getMuteInputValue().setValue(false);
-//        }
     }
     models = audioProcessor.getModels();
     state = valueTreeState.state;
@@ -46,17 +42,31 @@ EqAudioProcessorEditor::EqAudioProcessorEditor (EqAudioProcessor& p, juce::Audio
     addAndMakeVisible(cc);
     resizeButton.addListener(this);
     addAndMakeVisible(resizeButton);
-    
-    // Add the overlay and hide it initially
+
     addAndMakeVisible(overlay);
-    overlay.setVisible(audioProcessor.licenseVisibility); // Hidden by default
-    
+    overlay.setVisible(audioProcessor.licenseVisibility.load());
+
     addAndMakeVisible(licenseChecker);
     licenseChecker.setLookAndFeel(&customLookAndFeel1);
     addAndMakeVisible(licenseButton);
     licenseButton.addListener(this);
     licenseButton.setLookAndFeel(new NoOutlineLookAndFeel());
     licenseChecker.setVisible(audioProcessor.licenseVisibility.load());
+    
+    // Set default buffer size to 128 on first launch (standalone only)
+    if (juce::JUCEApplicationBase::isStandaloneApp()) {
+        auto& state = valueTreeState.state;
+        if (!state.hasProperty("bufferSizeInitialized")) {
+            if (auto* pluginHolder = juce::StandalonePluginHolder::getInstance()) {
+                auto& deviceManager = pluginHolder->deviceManager;
+                auto currentSetup = deviceManager.getAudioDeviceSetup();
+                currentSetup.bufferSize = 128;
+                deviceManager.setAudioDeviceSetup(currentSetup, true);
+                state.setProperty("bufferSizeInitialized", true, nullptr);
+            }
+        }
+    }
+
     setSize (sizePortion*fullWidth, sizePortion*fullHeight);
 }
 
@@ -68,68 +78,19 @@ void EqAudioProcessorEditor::buttonClicked(juce::Button *button) {
         // Get the AudioDeviceManager
         auto& deviceManager = pluginHolder->deviceManager;
 
-        // Create a custom settings component that includes the mute button
-        class CustomSettingsComponent : public juce::Component
-        {
-        public:
-            CustomSettingsComponent(juce::AudioDeviceManager& dm, StandalonePluginHolder& holder, juce::LookAndFeel* laf)
-                : deviceManager(dm), pluginHolder(holder),
-                  deviceSelector(dm, 0, 2, 0, 2, false, false, false, false),
-                  muteLabel("", "Mute Input:"),
-                  muteButton("Mute audio input to avoid feedback")
-            {
-                addAndMakeVisible(deviceSelector);
-                addAndMakeVisible(muteLabel);
-                addAndMakeVisible(muteButton);
-                
-                // Apply custom look and feel to match the rest of the interface
-                if (laf != nullptr)
-                {
-                    setLookAndFeel(laf);
-                    muteButton.setLookAndFeel(laf);
-                    muteLabel.setLookAndFeel(laf);
-                    deviceSelector.setLookAndFeel(laf);
-                }
-                
-                muteButton.setClickingTogglesState(true);
-                muteButton.getToggleStateValue().referTo(pluginHolder.getMuteInputValue());
-                
-                // Ensure the settings are saved when the value changes
-                muteButton.onClick = [&holder = pluginHolder]()
-                {
-                    holder.saveAudioDeviceState();
-                };
-                
-                muteLabel.attachToComponent(&muteButton, true);
-                setSize(500, 400);
-            }
-            
-            void resized() override
-            {
-                auto bounds = getLocalBounds();
-                auto muteArea = bounds.removeFromTop(40);
-                muteButton.setBounds(muteArea.removeFromRight(300).reduced(5));
-                bounds.removeFromTop(10); // spacing
-                
-                // Set device selector to take remaining space and size itself properly
-                deviceSelector.setBounds(bounds);
-                
-                // Resize the component to fit content better
-                auto idealHeight = 40 + 10 + deviceSelector.getHeight();
-                if (idealHeight < getHeight())
-                    setSize(getWidth(), idealHeight);
-            }
-            
-        private:
-            juce::AudioDeviceManager& deviceManager;
-            StandalonePluginHolder& pluginHolder;
-            juce::AudioDeviceSelectorComponent deviceSelector;
-            juce::Label muteLabel;
-            juce::ToggleButton muteButton;
-        };
+        // Create the AudioDeviceSelectorComponent
+        auto* audioSettingsComp = new juce::AudioDeviceSelectorComponent(
+            deviceManager,
+            0, 2,  // Min/max input channels
+            0, 2,  // Min/max output channels
+            false,  // Show input channels
+            false,  // Show output channels
+            false,  // Show sample rate selector
+            false
+        );
 
-        auto* audioSettingsComp = new CustomSettingsComponent(deviceManager, *pluginHolder, &customLookAndFeel1);
-        
+        audioSettingsComp->setLookAndFeel(&customLookAndFeel1);
+        audioSettingsComp->setSize(500, 550);
         // Create a dialog window to display the settings
         juce::DialogWindow::LaunchOptions options;
         options.content.setOwned(audioSettingsComp); // Attach the settings component
@@ -143,22 +104,6 @@ void EqAudioProcessorEditor::buttonClicked(juce::Button *button) {
         // Launch the dialog asynchronously
         options.launchAsync();
     }
-    else if (button == &resizeButton) {
-        if (sizePortion == 1.0) {
-            sizePortion = 0.75;
-        }
-        else if (sizePortion == 0.75) {
-            sizePortion = 1.0;
-        }
-        setProcessorSizePortion(sizePortion);
-        cc.sizePortion = sizePortion;
-        licenseChecker.sizePortion = sizePortion;
-        setSize((int)fullWidth*sizePortion, (int)fullHeight*sizePortion);
-        licenseChecker.updateLicenseFieldsWithResize(sizePortion);
-        resized();
-        repaint();
-        return;
-    }
     else if (button == &licenseButton) {
         if (!audioProcessor.licenseVisibility.load())
         {
@@ -170,6 +115,22 @@ void EqAudioProcessorEditor::buttonClicked(juce::Button *button) {
             audioProcessor.licenseVisibility.store(false);
             hideLicensePage(); // Hide license page and overlay
         }
+    }
+    else if (button == &resizeButton) {
+        if (sizePortion == 1.0) {
+            sizePortion = 0.75;
+        }
+        else if (sizePortion == 0.75) {
+            sizePortion = 1.0;
+        }
+        setProcessorSizePortion(sizePortion);
+        cc.sizePortion = sizePortion;
+        licenseChecker.sizePortion = sizePortion;
+        licenseChecker.updateLicenseFieldsWithResize(sizePortion);
+        setSize((int)fullWidth*sizePortion, (int)fullHeight*sizePortion);
+        resized();
+        repaint();
+        return;
     }
 }
 
@@ -206,15 +167,15 @@ void EqAudioProcessorEditor::resized()
     double width = 980.0;
     double height = 980.0;
     cc.setBounds(getLocalBounds());
-    licenseChecker.setBoundsRelative(0.3, 0.4, 0.4, 0.2);
-    licenseChecker.resized();
-    licenseButton.setBoundsRelative(0.4, 0.845, 0.195, 0.07);
     inMeter.setBoundsRelative(116.1/width, 115.0/height, 5.0/width, 38.5/height);
     inClip.setBoundsRelative(116.1/width, 110.0/height, 5.0/width, 3.0/height);
     outMeterL.setBoundsRelative(867.9/width, 115.0/height, 5.0/width, 38.5/height);
     outClipL.setBoundsRelative(867.9/width, 110.0/height, 5.0/width, 3.0/height);
     resizeButton.setBoundsRelative(914.0/width, 921.5/height, 56.0/height, 55.0/height);
     settingsButton.setBoundsRelative(13.5/width, 921.5/height, 56.0/height, 55.0/height);
+    licenseChecker.setBoundsRelative(0.3, 0.4, 0.4, 0.2);
+    licenseChecker.resized();
+    licenseButton.setBoundsRelative(0.4, 0.845, 0.195, 0.07);
     overlay.setBounds(getLocalBounds()); // Make the overlay cover the entire UI
     cc.toBack();
 //    inMeter.toFront (false);  // inMeter stays on top of cc

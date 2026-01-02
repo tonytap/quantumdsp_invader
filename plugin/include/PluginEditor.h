@@ -12,6 +12,7 @@
 #include "BinaryData.h"
 //#include "Gui/PresetPanel.h"
 #include "Gui/ButtonsAndKnobs.h"
+#include "licenseChecker.h"
 #include <juce_audio_basics/juce_audio_basics.h>
 #include <juce_audio_devices/juce_audio_devices.h>
 #include <juce_audio_formats/juce_audio_formats.h>
@@ -25,7 +26,6 @@
 #include <juce_gui_basics/juce_gui_basics.h>
 #include <juce_gui_extra/juce_gui_extra.h>
 #include <juce_audio_plugin_client/Standalone/juce_StandaloneFilterWindow.h>
-#include "licenseChecker.h"
 
 //==============================================================================
 /**
@@ -97,7 +97,6 @@ private:
         EqAudioProcessor& audioProcessor;
     };
     OverlayComponent overlay;
-    LicenseChecker licenseChecker;
     juce::TextButton licenseButton{"License"};
     class NoOutlineLookAndFeel : public juce::LookAndFeel_V4
     {
@@ -217,8 +216,9 @@ private:
     juce::Label noiseGateLabel;
     
     juce::Image background, mainDial, inGainDial, outGainDial, bgLight;
-    
+
     CentralComponents cc;
+    LicenseChecker licenseChecker;
     
     class ResizeButton : public juce::Button
     {

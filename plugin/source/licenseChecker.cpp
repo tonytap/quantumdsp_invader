@@ -1,4 +1,5 @@
 #include "licenseChecker.h"
+#include "AppConfig.h"
 #include <LicenseSpring/Exceptions.h>
 using namespace juce;
 
@@ -12,7 +13,7 @@ LicenseChecker::LicenseChecker( LicenseSpring::LicenseManager::ptr_t manager, Eq
     addChildComponent( activateKeyButton );
     addChildComponent(backButton);
     addChildComponent(proceedButton);
-  
+
     addChildComponent( labelInfo );
     labelInfo.setJustificationType(juce::Justification::centred);
     addChildComponent( deactivateButton );
@@ -151,7 +152,7 @@ void LicenseChecker::activateKeyBased()
         juce::AttributedString attributedText;
         labelInfo.setAttributedText(attributedText);
         makeExpirationInfoVisible();
-    } 
+    }
     catch (...) {
         DBG("Caught unknown exception");
     }
@@ -161,7 +162,9 @@ void LicenseChecker::getTrial()
 {
     try
     {
-        auto id = licenseManager->getTrialLicense("");
+        // Use the trial policy code to ensure the SDK reuses the cached trial license
+        // instead of creating a new trial license on each activation
+        auto id = licenseManager->getTrialLicense(AppConfig::TRIAL_POLICY_CODE);
         keyEditor.setText( id.key().c_str() );
     }
     catch( LicenseSpring::LicenseSpringException ex )
@@ -294,7 +297,7 @@ void LicenseChecker::checkLicense()
     }
     catch( std::exception ex )
     {
-        
+
         AlertWindow::showMessageBoxAsync( AlertWindow::WarningIcon, "Error", String( "Standard exception encountered: " ) + String( ex.what() ), "Ok" );
     }
     catch( ... )

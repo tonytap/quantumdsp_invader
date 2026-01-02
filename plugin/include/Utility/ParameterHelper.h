@@ -20,10 +20,12 @@ namespace Utility
                 std::make_unique<AudioParameterFloat>("presence", "Presence", NormalisableRange<float>{-6.f, 6.f, 0.1f}, 0.f),
                 std::make_unique<AudioParameterFloat>("thickness", "Thickness", NormalisableRange<float>{-6.f, 6.f, 0.1f}, 0.f),
                 std::make_unique<AudioParameterFloat>("reverb", "Reverb", NormalisableRange<float>{0.f, 1.f, 0.01f}, 0.f),
+                std::make_unique<AudioParameterFloat>("delay mix", "Delay Mix", NormalisableRange<float>{0.f, 1.f, 0.01f}, 0.f),
+                std::make_unique<AudioParameterFloat>("delay feedback", "Delay Feedback", NormalisableRange<float>{0.0f, 1.f, 0.01f}, 0.3f),
+                std::make_unique<AudioParameterInt>("delay timing", "Delay Timing", 0, 16, 10),
                 std::make_unique<AudioParameterFloat>("amp gain", "Amp Gain", NormalisableRange<float>{1.f, 10.f, 0.1f}, 1.f),
                 std::make_unique<AudioParameterFloat>("boost gain", "Boost Amp Gain", NormalisableRange<float>{1.f, 10.f, 0.5f}, 1.f),
-                std::make_unique<AudioParameterBool>("is amp 1", "Is Amp 1", true),
-                std::make_unique<AudioParameterBool>("is boost", "Is Boost", false),
+                std::make_unique<AudioParameterBool>("is gain 2", "Is Gain 2", false),
                 std::make_unique<AudioParameterBool>("amp smooth", "Amp Smooth", false),
                 std::make_unique<AudioParameterInt>("ir selection", "IR Selection", 0, 15, 0),
 //                std::make_unique<AudioParameterInt>("preset selection", "Preset Selection", 1, 5, 1),
@@ -41,7 +43,10 @@ namespace Utility
                 std::make_unique<AudioParameterBool>("gate state", "Gate State", false),
                 std::make_unique<AudioParameterBool>("eq state", "EQ State", false),
                 std::make_unique<AudioParameterBool>("ir visibility", "IR Visibility", false),
-                std::make_unique<AudioParameterBool>("reverb state", "Reverb State", false)
+                std::make_unique<AudioParameterBool>("reverb state", "Reverb State", false),
+                std::make_unique<AudioParameterBool>("delay state", "Delay State", false),
+                std::make_unique<AudioParameterBool>("fx state", "FX State", false),
+                std::make_unique<AudioParameterBool>("back state", "Back State", false)
 			};
 		}
 	};
