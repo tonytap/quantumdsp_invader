@@ -48,11 +48,11 @@ irResampler(48000.0)
         models.resize(numModelFiles);
         unsigned long i = 0;
         for (double gain = 1.0; gain <= 10.0; gain += 0.5) {
-            loadModel(1, gain, i);
+//            loadModel(1, gain, i);
             i++;
         }
         for (double gain = 1.0; gain <= 10.0; gain += 0.5) {
-            loadModel(2, gain, i);
+//            loadModel(2, gain, i);
             i++;
         }
     }
@@ -797,6 +797,7 @@ bool EqAudioProcessor::isBusesLayoutSupported (const BusesLayout& layouts) const
 
 void EqAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages)
 {
+    return;
     juce::ScopedNoDenormals noDenormals;
     auto totalNumInputChannels  = getTotalNumInputChannels();
     auto totalNumOutputChannels = getTotalNumOutputChannels();
@@ -925,12 +926,6 @@ void EqAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::Mid
                 irIn[0][i] = (double)(chL[i]);
             }
             double** ir_out = nullptr;
-//            if (projectSr != mIR->mSampleRate) {
-//                ir_out = irResampler.ProcessIR(irIn, buffer.getNumSamples(), setResamplingIRProcess(mIR));
-//            }
-//            else {
-//                ir_out = mIR->Process(irIn, 1, buffer.getNumSamples());
-//            }
             ir_out = mIR->Process(irIn, 1, buffer.getNumSamples());
             for (int ch = 0; ch < totalNumInputChannels; ch++) {
                 auto *channelData = buffer.getWritePointer(ch);
@@ -998,43 +993,59 @@ void EqAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::Mid
             juce::AudioPlayHead::CurrentPositionInfo positionInfo;
             if (playHead->getCurrentPosition(positionInfo) && positionInfo.bpm > 0)
             {
-                double bpm = positionInfo.bpm;
+                double bpm = juce::JUCEApplicationBase::isStandaloneApp() ? 80.0 : positionInfo.bpm;
                 double beatsPerSec = bpm/60;
                 double samplesPerBeat = sr*(60.0/bpm);
-
+                
                 // Calculate delay samples based on timing parameter
                 // t = triplet (2/3), d = dotted (1.5x)
-                int timingIndex = delayTimingParam->load();
-                double beatDivision = 1.0; // default
-                switch(timingIndex) {
-                    case 0: beatDivision = 0.125 * (2.0/3.0); break;  // 1/32t
-                    case 1: beatDivision = 0.125; break;               // 1/32
-                    case 2: beatDivision = 0.25 * (2.0/3.0); break;   // 1/16t
-                    case 3: beatDivision = 0.125 * 1.5; break;         // 1/32d
-                    case 4: beatDivision = 0.25; break;                // 1/16
-                    case 5: beatDivision = 0.5 * (2.0/3.0); break;    // 1/8t
-                    case 6: beatDivision = 0.25 * 1.5; break;          // 1/16d
-                    case 7: beatDivision = 0.5; break;                 // 1/8
-                    case 8: beatDivision = 1.0 * (2.0/3.0); break;    // 1/4t
-                    case 9: beatDivision = 0.5 * 1.5; break;           // 1/8d
-                    case 10: beatDivision = 1.0; break;                // 1/4
-                    case 11: beatDivision = 2.0 * (2.0/3.0); break;   // 1/2t
-                    case 12: beatDivision = 1.0 * 1.5; break;          // 1/4d
-                    case 13: beatDivision = 4.0 * (2.0/3.0); break;   // 1/1t
-                    case 14: beatDivision = 2.0; break;                // 1/2
-                    case 15: beatDivision = 2.0 * 1.5; break;          // 1/2d
-                    case 16: beatDivision = 4.0; break;                // 1/1
-                    default: beatDivision = 1.0; break;
+                float delayMix = delayMixParam->load();
+                if (delayMix <= 0.2f) {
+                    beatDivision = 0.125;
+                }
+                else if (delayMix <= 0.4f) {
+                    beatDivision = 0.25;
+                }
+                else if (delayMix <= 0.6f) {
+                    beatDivision = 0.5;
+                }
+                else if (delayMix <= 0.8f) {
+                    beatDivision = 0.75;
+                }
+                else {
+                    beatDivision = 1.5;
+                }
+                
+                if (delayMix <= 0.2f) {
+                    actualDelayMix = delayMix*0.9;
+                }
+                else if (delayMix <= 0.5f) {
+                    actualDelayMix = 0.4*delayMix+0.1;
+                }
+                else {
+                    actualDelayMix = 0.2*delayMix+0.2;
+                }
+                
+                if (delayMix <= 0.25f) {
+                    channelDelays[0]->FB = 0.8*delayMix;
+                }
+                else if (delayMix <= 0.6f) {
+                    channelDelays[0]->FB = (0.2/0.35)*delayMix+0.05714285714;
+                }
+                else if (delayMix <= 0.8f) {
+                    channelDelays[0]->FB = delayMix-0.2;
+                }
+                else {
+                    channelDelays[0]->FB = 0.75*delayMix;
                 }
 
                 int delaySamples = (int)(samplesPerBeat * beatDivision);
 
                 auto *data = buffer.getWritePointer(0);
-                channelDelays[0]->FB = delayFeedbackParam->load();
-                channelDelays[0]->process(data, buffer.getNumSamples(), delaySamples, delayMixParam->load());
+                channelDelays[0]->process(data, buffer.getNumSamples(), delaySamples, actualDelayMix);
                 data = buffer.getWritePointer(1);
                 channelDelays[1]->FB = channelDelays[0]->FB;
-                channelDelays[1]->process(data, buffer.getNumSamples(), delaySamples, delayMixParam->load());
+                channelDelays[1]->process(data, buffer.getNumSamples(), delaySamples, actualDelayMix);
             }
         }
 
@@ -1129,6 +1140,9 @@ void EqAudioProcessor::getStateInformation (juce::MemoryBlock& destData)
     state.setProperty("lastTouchedDropdown", irDropdownState, nullptr);
     state.setProperty("presetPath", presetPath, nullptr);
     state.setProperty("currentMainKnobID", currentMainKnobID, nullptr);
+    DBG("SAVING currentMainKnobID: " << currentMainKnobID);
+    DBG("SAVING is eq 1: " << valueTreeState.getRawParameterValue("is eq 1")->load());
+    DBG("SAVING is fx 1: " << valueTreeState.getRawParameterValue("is fx 1")->load());
     state.setProperty("irVisibility", irVisibility, nullptr);
     state.setProperty("lastPresetButton", lastPresetButton, nullptr);
     state.setProperty("lastBottomButton", lastBottomButton, nullptr);
@@ -1222,6 +1236,9 @@ void EqAudioProcessor::setStateInformation (const void* data, int sizeInBytes)
             else {
                 currentMainKnobID = state.getProperty("currentMainKnobID");
             }
+            DBG("RESTORED currentMainKnobID: " << currentMainKnobID);
+            DBG("RESTORED is eq 1: " << valueTreeState.getRawParameterValue("is eq 1")->load());
+            DBG("RESTORED is fx 1: " << valueTreeState.getRawParameterValue("is fx 1")->load());
             if (state.getProperty("p1n") == "The Rocker") {
                 state.setProperty("p1n", p1n, nullptr);
             }
@@ -1296,7 +1313,7 @@ void EqAudioProcessor::setButtonState(int lastBottomButton, int lastPresetButton
 
 void EqAudioProcessor::setAmp() {
     int start_idx = std::nan("-1");
-    bool ampState = valueTreeState.getParameterAsValue("is gain 2").getValue();
+    bool ampState = valueTreeState.getParameterAsValue("is amp 1").getValue();
     if (!ampState) {
         start_idx = models.size()/2;
     }

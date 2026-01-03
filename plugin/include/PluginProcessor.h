@@ -361,5 +361,8 @@ private:
     float *reverbWetR;
     int reverbRp, reverbWp;
     
+    double beatDivision = 1.0;
+    float actualDelayMix = 0.f;
+    
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (EqAudioProcessor)
 };

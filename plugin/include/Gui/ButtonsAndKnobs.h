@@ -43,47 +43,21 @@ inline std::array<float, 40> opacityValues = {
     0.02595754f, 0.02302227f, 0.02041892f, 0.01810996f, 0.01606209f,
     0.0142458f, 0.01263489f, 0.01120614f, 0.00993896f, 0.00881506f
 };
-inline std::array<float, 40> assimilateValues = {
+inline std::array<float, 40> thicknessValues = {
     0.012, 0.012742038558544316, 0.013529962218952508, 0.014366608357461723, 0.015254989803856858, 0.01619830569091204, 0.01719995297472408, 0.018263538667423605, 0.019392892826314723, 0.0205920823462183, 0.021865425604686108, 0.023217508012824378, 0.024653198527726652, 0.026177667185978415, 0.027796403721373097, 0.029515237333883393, 0.031340357681077416, 0.03327833716757157, 0.03533615461278629, 0.037521220382233864, 0.039841403072838566, 0.04230505784838459, 0.04492105652713034, 0.04769881952993697, 0.05064834980395863, 0.053780268844056775, 0.05710585494165425, 0.0606370837987664, 0.06438667165346369, 0.06836812107206389, 0.07259576957295534, 0.0770848412571496, 0.081851501631489, 0.08691291582193214, 0.09228731038654797, 0.09799403895081182, 0.10405365190156148, 0.11048797039058698, 0.11732016491434685, 0.12457483875278212
 };
 
 inline void makeDisplayString(const juce::String ID, float val, juce::AttributedString *str, juce::AttributedString *strVal = nullptr) {
     str->clear();
     strVal->clear();
-    str->append(ID);//, titleFont);
+
+    str->append(ID);
 
     if (ID == "GAIN 1\n" || ID == "GAIN 2\n") {
         strVal->append(juce::String(val, 1));//, valueFont);
     }
-    else if (ID == "REVERB\n") {
+    else if (ID == "REVERB\n" || "DELAY\n") {
         strVal->append(juce::String((int)(val * 100)) + "%");//, valueFont);
-    }
-    else if (ID == "PREDELAY\n") {
-        strVal->append(juce::String((int)val) + "ms");//, valueFont);
-    }
-    else if (ID == "TIMING\n") {
-        // Display beat divisions:
-        int timingIndex = (int)val;
-        switch(timingIndex) {
-            case 0: strVal->append("1/32t"); break;
-            case 1: strVal->append("1/32"); break;
-            case 2: strVal->append("1/16t"); break;
-            case 3: strVal->append("1/32d"); break;
-            case 4: strVal->append("1/16"); break;
-            case 5: strVal->append("1/8t"); break;
-            case 6: strVal->append("1/16d"); break;
-            case 7: strVal->append("1/8"); break;
-            case 8: strVal->append("1/4t"); break;
-            case 9: strVal->append("1/8d"); break;
-            case 10: strVal->append("1/4"); break;
-            case 11: strVal->append("1/2t"); break;
-            case 12: strVal->append("1/4d"); break;
-            case 13: strVal->append("1/1t"); break;
-            case 14: strVal->append("1/2"); break;
-            case 15: strVal->append("1/2d"); break;
-            case 16: strVal->append("1/1"); break;
-            default: strVal->append("1/2dt"); break;
-        }
     }
     else if (ID == "GATE\n") {
         if (val < -99.9) {
@@ -248,6 +222,7 @@ public:
         auto bounds = getLocalBounds().toFloat();
         auto centerX = bounds.getCentreX();
         auto centerY = bounds.getCentreY();
+        // Calculate scaling factor based on the current bounds size vs original image size
         float scaleX = (float)bounds.getWidth() / knobImage.getWidth();
         float scaleY = (float)bounds.getHeight() / knobImage.getHeight();
         auto lightBarBounds = bounds.reduced (0.093f * bounds.getWidth());
@@ -267,26 +242,26 @@ public:
             angleRotated = ((val-min) / (max-min))*(endAngle-startAngle);
             juce::Colour lightColour((uint8)0x56, (uint8)0xf9, (uint8)0x7c, (float)1.0f);
             g.setColour(lightColour);
-            float assimilate = 0.96;
+            float thickness = 0.96;
             if (ID == "input gain" || ID == "output gain") {
-                assimilate = 0.9;
+                thickness = 0.9;
             }
             juce::Random random;
             // Draw glow effect around the arc by creating multiple layers of slightly larger arcs
             for (int i = 0; i < 40; ++i) {  // Number of glow layers
                 float opacity = opacityValues[i]; // Exponential decay for opacity
-                float glowassimilate = assimilate + assimilateValues[i]; // Increase assimilate for each layer
+                float glowThickness = thickness + thicknessValues[i]; // Increase thickness for each layer
                 juce::Colour glowColour = lightColour.withAlpha(opacity); // Adjust opacity for glow
 
                 g.setColour(glowColour);
                 Path glowArc;
-                glowArc.addPieSegment(lightBarBounds, startAngle, startAngle + angleRotated, glowassimilate);
+                glowArc.addPieSegment(lightBarBounds, startAngle, startAngle + angleRotated, glowThickness);
                 g.fillPath(glowArc);
             }
             // Draw the main arc path
             g.setColour(lightColour);
             Path filledArc1;
-            filledArc1.addPieSegment(lightBarBounds, startAngle, startAngle + angleRotated, assimilate);
+            filledArc1.addPieSegment(lightBarBounds, startAngle, startAngle + angleRotated, thickness);
             g.fillPath(filledArc1);
         }
 
@@ -304,7 +279,7 @@ public:
     void valueChanged() override
     {
         double val = getValue();
-        if (ID == "amp gain") {
+        if (ID == "amp gain" || ID == "boost gain") {
             valueTreeState.getParameterAsValue("amp gain").setValue(val);
             audioProcessor.setAmp();
         }
@@ -324,34 +299,26 @@ public:
             if (ID == "reverb") {
                 makeDisplayString("REVERB\n", val, &paramLabelStr, &paramLabelStrVal);
             }
+            else if (ID == "delay mix") {
+                makeDisplayString("DELAY\n", val, &paramLabelStr, &paramLabelStrVal);
+            }
             else if (ID == "thickness") {
                 makeDisplayString("NEUTRALIZE\n", val, &paramLabelStr, &paramLabelStrVal);
-                // New EQ system handles this in processBlock via assimilateParameter
             }
             else if (ID == "presence") {
                 makeDisplayString("VAPORIZE\n", val, &paramLabelStr, &paramLabelStrVal);
-                // New EQ system handles this in processBlock via obliterateParameter
             }
             else if (ID == "noise gate") {
                 makeDisplayString("GATE\n", val, &paramLabelStr, &paramLabelStrVal);
             }
             else if (ID == "amp gain") {
-                bool ampState = valueTreeState.getParameterAsValue("is gain 2").getValue();
+                bool ampState = valueTreeState.getParameterAsValue("is amp 1").getValue();
                 if (ampState) {
                     makeDisplayString("GAIN 1\n", val, &paramLabelStr, &paramLabelStrVal);
                 }
                 else {
                     makeDisplayString("GAIN 2\n", val, &paramLabelStr, &paramLabelStrVal);
                 }
-            }
-            else if (ID == "delay mix") {
-                makeDisplayString("DELAY\n", val, &paramLabelStr, &paramLabelStrVal);
-            }
-            else if (ID == "delay feedback") {
-                makeDisplayString("FEEDBACK\n", val, &paramLabelStr, &paramLabelStrVal);
-            }
-            else if (ID == "delay timing") {
-                makeDisplayString("TIMING\n", val, &paramLabelStr, &paramLabelStrVal);
             }
             juce::String str = paramLabelStr.getText();
             juce::String valStr = paramLabelStrVal.getText();
@@ -381,17 +348,10 @@ class CentralComponents : public Component, ComboBox::Listener//, public juce::T
 public:
     CentralComponents(const void* knobImg, int knobImgSize, EqAudioProcessor& p, juce::AudioProcessorValueTreeState& vts, const void* knobImg2, int knobImg2Size)
     : ampGainButton(vts, BinaryData::buttongainon_png, BinaryData::buttongainon_pngSize, BinaryData::buttongainoff_png, BinaryData::buttongainoff_pngSize, "gain state", "gain", "amp gain", "amp gain"),
-    eqButton(vts, BinaryData::button_eq_on_png, BinaryData::button_eq_on_pngSize, BinaryData::button_eq_off_png, BinaryData::button_eq_off_pngSize, "eq state", "eq", "presence", "thickness"),
+    eqButton(vts, BinaryData::button_eq_on_png, BinaryData::button_eq_on_pngSize, BinaryData::button_eq_off_png, BinaryData::button_eq_off_pngSize, "eq state", "eq", "thickness", "presence"),
     irButton(vts, BinaryData::button_ir_on_png, BinaryData::button_ir_on_pngSize, BinaryData::button_ir_off_png, BinaryData::button_ir_off_pngSize, "ir state", "ir", "ir selection", "ir selection"),
     gateButton(vts, BinaryData::buttongateon_png, BinaryData::buttongateon_pngSize, BinaryData::buttongateoff_png, BinaryData::buttongateoff_pngSize, "gate state", "gate", "noise gate", "noise gate"),
-    fxButton(vts, BinaryData::button_fx_on_png, BinaryData::button_fx_on_pngSize, BinaryData::button_fx_off_png, BinaryData::button_fx_off_pngSize, "fx state", "fx", "fx", "fx"),
-    reverbButton(vts, BinaryData::button_reverb_on_png, BinaryData::button_reverb_on_pngSize, BinaryData::button_reverb_off_png, BinaryData::button_reverb_off_pngSize, "reverb state", "reverb", "reverb", "reverb"),
-    reverbMixButton(vts, BinaryData::buttonReverb_Mix_on_png, BinaryData::buttonReverb_Mix_on_pngSize, BinaryData::buttonReverb_Mix_on_png, BinaryData::buttonReverb_Mix_on_pngSize, "reverb state", "reverb", "reverb", "reverb"),
-    backButton(vts, BinaryData::buttonbackon_png, BinaryData::buttonbackon_pngSize, BinaryData::buttonbackoff_png, BinaryData::buttonbackoff_pngSize, "back state", "back", "back", "back"),
-    delayButton(vts, BinaryData::buttondelayon_png, BinaryData::buttondelayon_pngSize, BinaryData::buttondelayoff_png, BinaryData::buttondelayoff_pngSize, "delay state", "delay mix", "delay timing", "delay feedback"),
-    delayMixButton(vts, BinaryData::buttonDelay_Mix_on_png, BinaryData::buttonDelay_Mix_on_pngSize, BinaryData::buttonDelay_Mix_off_png, BinaryData::buttonDelay_Mix_off_pngSize, "delay state", "delay mix", "delay mix", "delay mix"),
-    delayTimeButton(vts, BinaryData::buttonDelay_Time_on_png, BinaryData::buttonDelay_Time_on_pngSize, BinaryData::buttonDelay_Time_off_png, BinaryData::buttonDelay_Time_off_pngSize, "delay state", "delay timing", "delay timing", "delay timing"),
-    delayFbButton(vts, BinaryData::buttonDelay_Feedback_on_png, BinaryData::buttonDelay_Feedback_on_pngSize, BinaryData::buttonDelay_Feedback_off_png, BinaryData::buttonDelay_Feedback_off_pngSize, "delay state", "delay feedback", "delay feedback", "delay feedback"),
+    fxButton(vts, BinaryData::button_fx_on_png, BinaryData::button_fx_on_pngSize, BinaryData::button_fx_off_png, BinaryData::button_fx_off_pngSize, "reverb state", "reverb", "reverb", "delay mix"),
     valueTreeState(vts),
     irDropdown (p.getIRDropdown()),
     userIRDropdown (p.getCustomIRDropdown()),
@@ -401,13 +361,6 @@ public:
     p3Button(vts, BinaryData::button_P3_on_png, BinaryData::button_P3_on_pngSize, BinaryData::button_P3_off_png, BinaryData::button_P3_off_pngSize, "p3 state", "p3", "preset selection", "preset selection"),
     p4Button(vts, BinaryData::button_P4_on_png, BinaryData::button_P4_on_pngSize, BinaryData::button_P4_off_png, BinaryData::button_P4_off_pngSize, "p4 state", "p4", "preset selection", "preset selection"),
     p5Button(vts, BinaryData::button_P5_on_png, BinaryData::button_P5_on_pngSize, BinaryData::button_P5_off_png, BinaryData::button_P5_off_pngSize, "p5 state", "p5", "preset selection", "preset selection"),
-    blankButton1(vts, BinaryData::button_blank4_off_png, BinaryData::button_blank4_off_pngSize, BinaryData::button_blank4_off_png, BinaryData::button_blank4_off_pngSize, "", "", "", ""),
-    blankButton2(vts, BinaryData::button_blank4_off_png, BinaryData::button_blank4_off_pngSize, BinaryData::button_blank4_off_png, BinaryData::button_blank4_off_pngSize, "", "", "", ""),
-    blankButton3(vts, BinaryData::button_blank4_off_png, BinaryData::button_blank4_off_pngSize, BinaryData::button_blank4_off_png, BinaryData::button_blank4_off_pngSize, "", "", "", ""),
-    blankButton4(vts, BinaryData::button_blank4_off_png, BinaryData::button_blank4_off_pngSize, BinaryData::button_blank4_off_png, BinaryData::button_blank4_off_pngSize, "", "", "", ""),
-    blankButton5(vts, BinaryData::button_blank4_off_png, BinaryData::button_blank4_off_pngSize, BinaryData::button_blank4_off_png, BinaryData::button_blank4_off_pngSize, "", "", "", ""),
-    bottomBlankButton1(vts, BinaryData::button_blank4_off_png, BinaryData::button_blank4_off_pngSize, BinaryData::button_blank4_off_png, BinaryData::button_blank4_off_pngSize, "", "", "", ""),
-    bottomBlankButton2(vts, BinaryData::button_blank4_off_png, BinaryData::button_blank4_off_pngSize, BinaryData::button_blank4_off_png, BinaryData::button_blank4_off_pngSize, "", "", "", ""),
     presetPanel(p.getPresetManager(), p, &parameterLabel, &parameterValueLabel),
     mainKnob(knobImg, knobImgSize, p, vts, &presetPanel, &parameterLabel, &parameterValueLabel, false),
     inGainKnob(knobImg2, knobImg2Size, p, vts, &presetPanel, &inLabel),
@@ -419,25 +372,11 @@ public:
         setComponentInfo(&eqButton);
         setComponentInfo(&irButton, &irDropdown, &userIRDropdown, &nextIRButton, &prevIRButton, &customIRButton);
         setComponentInfo(&fxButton);
-        setComponentInfo(&backButton);
-        setComponentInfo(&reverbButton);
-        setReverbComponentInfo(&reverbMixButton);
-        setComponentInfo(&delayButton);
-        setDelayComponentInfo(&delayMixButton);
-        setDelayComponentInfo(&delayTimeButton);
-        setDelayComponentInfo(&delayFbButton);
         setPresetComponentInfo(&p1Button);
         setPresetComponentInfo(&p2Button);
         setPresetComponentInfo(&p3Button);
         setPresetComponentInfo(&p4Button);
         setPresetComponentInfo(&p5Button);
-        setPresetComponentInfo(&blankButton1);
-        setPresetComponentInfo(&blankButton2);
-        setPresetComponentInfo(&blankButton3);
-        setPresetComponentInfo(&blankButton4);
-        setPresetComponentInfo(&blankButton5);
-        addAndMakeVisible(bottomBlankButton2);
-        addAndMakeVisible(bottomBlankButton1);
         addAndMakeVisible(mainKnob);
         addAndMakeVisible(inGainKnob);
         inGainKnob.ID = "input gain";
@@ -467,11 +406,6 @@ public:
         outLabel.setJustificationType(juce::Justification::centred);
         parameterLabel.setJustificationType(juce::Justification::centredBottom);
         parameterValueLabel.setJustificationType(juce::Justification::centred);
-        irDropdown.setLookAndFeel(&customLookAndFeel1);
-        userIRDropdown.setLookAndFeel(&customLookAndFeel1);
-
-        // Set initial page visibility based on last button, then restore button states
-        setPage1(audioProcessor.lastBottomButton < 4);
         if (!audioProcessor.hasNotClosedGUI) {
             // if you're reopening the plugin window
             int bottomButton = valueTreeState.state.getProperty("lastBottomButton");
@@ -479,70 +413,8 @@ public:
             int presetButton = valueTreeState.state.getProperty("lastPresetButton");
             topButtons[audioProcessor.lastPresetButton]->triggerClick();
         }
-    }
-    
-    void setPage1(bool isPage1) {
-        if (isPage1) {
-            fxButton.setVisible(true);
-            ampGainButton.setVisible(true);
-            gateButton.setVisible(true);
-            eqButton.setVisible(true);
-            irButton.setVisible(true);
-            p1Button.setVisible(true);
-            p2Button.setVisible(true);
-            p3Button.setVisible(true);
-            p4Button.setVisible(true);
-            p5Button.setVisible(true);
-            reverbButton.setVisible(false);
-            delayButton.setVisible(false);
-            backButton.setVisible(false);
-            blankButton1.setVisible(false);
-            blankButton2.setVisible(false);
-            blankButton3.setVisible(false);
-            blankButton4.setVisible(false);
-            blankButton5.setVisible(false);
-            bottomBlankButton1.setVisible(false);
-            bottomBlankButton2.setVisible(false);
-        }
-        else {
-            fxButton.setVisible(false);
-            ampGainButton.setVisible(false);
-            gateButton.setVisible(false);
-            eqButton.setVisible(false);
-            irButton.setVisible(false);
-            p1Button.setVisible(false);
-            p2Button.setVisible(false);
-            p3Button.setVisible(false);
-            p4Button.setVisible(false);
-            p5Button.setVisible(false);
-            reverbButton.setVisible(true);
-            delayButton.setVisible(true);
-            backButton.setVisible(true);
-            bottomBlankButton1.setVisible(true);
-            bottomBlankButton2.setVisible(true);
-            if (audioProcessor.lastBottomButton == 6) {
-                reverbMixButton.setVisible(true);  // Replace blankButton1 with mix
-                blankButton1.setVisible(false);
-                blankButton2.setVisible(true);
-                blankButton3.setVisible(true);
-                blankButton4.setVisible(true);
-                blankButton5.setVisible(true);
-                delayMixButton.setVisible(false);
-                delayTimeButton.setVisible(false);
-                delayFbButton.setVisible(false);
-            }
-            else {
-                reverbMixButton.setVisible(false);
-                blankButton1.setVisible(false);
-                blankButton2.setVisible(false);
-                blankButton3.setVisible(false);
-                blankButton4.setVisible(true);
-                blankButton5.setVisible(true);
-                delayMixButton.setVisible(true);
-                delayTimeButton.setVisible(true);
-                delayFbButton.setVisible(true);
-            }
-        }
+        irDropdown.setLookAndFeel(&customLookAndFeel1);
+        userIRDropdown.setLookAndFeel(&customLookAndFeel1);
     }
     
     ~CentralComponents() {
@@ -601,28 +473,23 @@ public:
     void switchAttachmentTo() {
         if (audioProcessor.currentMainKnobID == "amp gain") {
             audioProcessor.lastBottomButton = 0;
-            audioProcessor.lastPage1Button = 0;
             activateButton(&ampGainButton);
         }
-        else if (audioProcessor.currentMainKnobID == "presence" || audioProcessor.currentMainKnobID == "thickness") {
+        else if (audioProcessor.currentMainKnobID == "thickness" || audioProcessor.currentMainKnobID == "presence") {
             audioProcessor.lastBottomButton = 1;
-            audioProcessor.lastPage1Button = 1;
             activateButton(&eqButton);
         }
         else if (audioProcessor.currentMainKnobID == "ir selection") {
             audioProcessor.lastBottomButton = 2;
-            audioProcessor.lastPage1Button = 2;
             activateButton(&irButton);
         }
         else if (audioProcessor.currentMainKnobID == "noise gate") {
             audioProcessor.lastBottomButton = 3;
-            audioProcessor.lastPage1Button = 3;
             activateButton(&gateButton);
         }
-        else if (audioProcessor.currentMainKnobID == "reverb") {
-            audioProcessor.lastBottomButton = 6;
-            audioProcessor.lastPage2Button = 6;
-            activateButton(&reverbButton);
+        else if (audioProcessor.currentMainKnobID == "reverb" || audioProcessor.currentMainKnobID == "delay mix") {
+            audioProcessor.lastBottomButton = 4;
+            activateButton(&fxButton); // CHANGE THIS TO FX BUTTON
         }
     }
     
@@ -635,17 +502,12 @@ public:
     juce::Label outLabel;
     double sizePortion = 1.0;
 private:
-    CustomButton delayButton, delayMixButton, delayTimeButton, delayFbButton,
-                 reverbButton, reverbMixButton, gateButton, ampGainButton, eqButton, irButton, backButton, fxButton,
-                 p1Button, p2Button, p3Button, p4Button, p5Button,
-                 blankButton1, blankButton2, blankButton3, blankButton4, blankButton5, bottomBlankButton1, bottomBlankButton2;
+    CustomButton fxButton, gateButton, ampGainButton, eqButton, irButton, p1Button, p2Button, p3Button, p4Button, p5Button;
     CustomRotarySlider mainKnob, inGainKnob, outGainKnob;
     juce::AudioProcessorValueTreeState& valueTreeState;
     EqAudioProcessor& audioProcessor;
     Gui::PresetPanel presetPanel;
     juce::Array<CustomButton*> buttons;
-    juce::Array<CustomButton*> delayButtons;
-    juce::Array<CustomButton*> reverbButtons;
     juce::Array<CustomButton*> topButtons;
     std::unique_ptr<juce::FileChooser> irChooser;
     bool isStandalone = juce::JUCEApplicationBase::isStandaloneApp();
@@ -697,8 +559,8 @@ private:
     void setComponentInfo(CustomButton* button, juce::ComboBox* ir = nullptr, juce::ComboBox* userIR = nullptr, juce::TextButton* next = nullptr, juce::TextButton* prev = nullptr, juce::TextButton* custom = nullptr)
     {
         addAndMakeVisible(*button);
-        buttons.add(button);
         button->onClick = [this, button]() {handleButtonClick(button);};
+        buttons.add(button);
         if (button == &irButton) {
             ir->onChange = [this, ir]() {comboBoxChanged(ir);};
             userIR->onChange = [this, userIR]() {comboBoxChanged(userIR);};
@@ -707,21 +569,6 @@ private:
             custom->onClick = [this, custom]() {handleIRButtonClick(custom);};
         }
     }
-
-    void setDelayComponentInfo(CustomButton* button)
-    {
-        addAndMakeVisible(*button);
-        button->onClick = [this, button]() {handleDelayButtonClick(button);};
-        delayButtons.add(button);
-    }
-
-    void setReverbComponentInfo(CustomButton* button)
-    {
-        addAndMakeVisible(*button);
-        button->onClick = [this, button]() {handleReverbButtonClick(button);};
-        reverbButtons.add(button);
-    }
-
     juce::StringArray factoryIRs, allIRs;
 
     void handleIRButtonClick(juce::TextButton* button)
@@ -809,9 +656,6 @@ private:
     
     void handlePresetClick(CustomButton* clickedButton)
     {
-        if (clickedButton == &blankButton1 || clickedButton == &blankButton2 || clickedButton == &blankButton3 || clickedButton == &blankButton4 || clickedButton == &blankButton5) {
-            return;
-        }
         for (CustomButton* button : topButtons) {
             if (button != clickedButton) {
                 button->turnOff();
@@ -882,27 +726,24 @@ private:
             if (button != clickedButton)
             {
                 button->turnOff();
-                DBG(button->buttonID << " OFF");
             }
             else {
-                DBG(button->buttonID << " ON");
+                DBG("handleButtonClick START: button=" << button->buttonID << ", currentMainKnobID=" << audioProcessor.currentMainKnobID << ", recalledFromPreset=" << (int)audioProcessor.recalledFromPreset);
                 audioProcessor.savedButtonID = button->buttonID;
-                if (button == &fxButton) {
-                    audioProcessor.lastBottomButton = audioProcessor.lastPage2Button;
-                    handleButtonClick(buttons[audioProcessor.lastBottomButton]);
-                    setPage1(false);
-                    return;
-                }
-                else if (button == &backButton) {
-                    audioProcessor.lastBottomButton = audioProcessor.lastPage1Button;
-                    handleButtonClick(buttons[audioProcessor.lastBottomButton]);
-                    setPage1(true);
-                    return;
-                }
                 if (button->currentState == State::Off) {
                     button->currentState = State::On;
                     if (audioProcessor.recalledFromPreset) {
                         button->lastUsedID = audioProcessor.currentMainKnobID;
+                        // Sync boolean parameter with currentMainKnobID to prevent out-of-sync issues
+                        if (button == &eqButton) {
+                            bool shouldBeEq1 = (audioProcessor.currentMainKnobID == "thickness");
+                            valueTreeState.getParameterAsValue("is eq 1").setValue(shouldBeEq1);
+                        }
+                        else if (button == &fxButton) {
+                            bool shouldBeFx1 = (audioProcessor.currentMainKnobID == "reverb");
+                            valueTreeState.getParameterAsValue("is fx 1").setValue(shouldBeFx1);
+                        }
+                        DBG("Button OFF->ON (restore): " << button->buttonID << ", lastUsedID=" << button->lastUsedID << ", currentMainKnobID=" << audioProcessor.currentMainKnobID);
                     }
                     else {
                         audioProcessor.currentMainKnobID = button->lastUsedID;
@@ -911,29 +752,49 @@ private:
                 else if (button->currentState == State::On) {
                     if (audioProcessor.recalledFromPreset) {
                         button->lastUsedID = audioProcessor.currentMainKnobID;
-                    }
-                    else if (isStandalone) {
-                        if (audioProcessor.justOpenedBottom) {
-                            audioProcessor.justOpenedBottom = false;
+                        // Sync boolean parameter with currentMainKnobID to prevent out-of-sync issues
+                        if (button == &eqButton) {
+                            bool shouldBeEq1 = (audioProcessor.currentMainKnobID == "thickness");
+                            valueTreeState.getParameterAsValue("is eq 1").setValue(shouldBeEq1);
                         }
-                        else {
-                            button->lastUsedID = button->lastUsedID == button->paramID1 ? button->paramID2 : button->paramID1;
-                            audioProcessor.currentMainKnobID = button->lastUsedID;
-                            if (button == &ampGainButton) {
-                                bool ampState = valueTreeState.getParameterAsValue("is gain 2").getValue();
-                                valueTreeState.getParameterAsValue("is gain 2").setValue(!ampState);
-                            }
+                        else if (button == &fxButton) {
+                            bool shouldBeFx1 = (audioProcessor.currentMainKnobID == "reverb");
+                            valueTreeState.getParameterAsValue("is fx 1").setValue(shouldBeFx1);
                         }
+                        DBG("Button ON->ON (restore): " << button->buttonID << ", lastUsedID=" << button->lastUsedID << ", currentMainKnobID=" << audioProcessor.currentMainKnobID);
                     }
+//                    else if (isStandalone) {
+//                        if (audioProcessor.justOpenedBottom) {
+//                            audioProcessor.justOpenedBottom = false;
+//                        }
+//                        else {
+//                            button->lastUsedID = button->lastUsedID == button->paramID1 ? button->paramID2 : button->paramID1;
+//                            audioProcessor.currentMainKnobID = button->lastUsedID;
+//                            if (button == &ampGainButton) {
+//                                bool ampState = valueTreeState.getParameterAsValue("is amp 1").getValue();
+//                                valueTreeState.getParameterAsValue("is amp 1").setValue(!ampState);
+//                            }
+//                        }
+//                    }
                     else if (audioProcessor.justOpenedBottom) {
                         audioProcessor.justOpenedBottom = false;
                     }
                     else {
-                        button->lastUsedID = button->lastUsedID == button->paramID1 ? button->paramID2 : button->paramID1;
-                        audioProcessor.currentMainKnobID = button->lastUsedID;
                         if (button == &ampGainButton) {
-                            bool ampState = valueTreeState.getParameterAsValue("is gain 2").getValue();
-                            valueTreeState.getParameterAsValue("is gain 2").setValue(!ampState);
+                            bool ampState = valueTreeState.getParameterAsValue("is amp 1").getValue();
+                            valueTreeState.getParameterAsValue("is amp 1").setValue(!ampState);
+                        }
+                        else if (button == &eqButton) {
+                            bool isEq1 = valueTreeState.getParameterAsValue("is eq 1").getValue();
+                            valueTreeState.getParameterAsValue("is eq 1").setValue(!isEq1);
+                            audioProcessor.currentMainKnobID = !isEq1 ? "thickness" : "presence";  // is eq 1 = true → thickness
+                            DBG("TOGGLE EQ: isEq1 was " << (int)isEq1 << ", now " << (int)!isEq1 << ", currentMainKnobID=" << audioProcessor.currentMainKnobID);
+                        }
+                        else if (button == &fxButton) {
+                            bool isFx1 = valueTreeState.getParameterAsValue("is fx 1").getValue();
+                            valueTreeState.getParameterAsValue("is fx 1").setValue(!isFx1);
+                            audioProcessor.currentMainKnobID = !isFx1 ? "reverb" : "delay mix";  // is fx 1 = true → reverb
+                            DBG("TOGGLE FX: isFx1 was " << (int)isFx1 << ", now " << (int)!isFx1 << ", currentMainKnobID=" << audioProcessor.currentMainKnobID);
                         }
                     }
                 }
@@ -947,8 +808,6 @@ private:
                         parameterLabel.setText(irText, juce::dontSendNotification);
                         parameterValueLabel.setText("", juce::dontSendNotification);
                     }
-                    audioProcessor.lastBottomButton = 3;
-                    audioProcessor.lastPage1Button = 3;
                 }
                 else {
                     mainKnob.ID = audioProcessor.currentMainKnobID;
@@ -956,154 +815,31 @@ private:
                     mainKnobAttachment = std::make_unique<SliderAttachment>(valueTreeState, audioProcessor.currentMainKnobID, mainKnob);
                     mainKnob.setVisible(true);
                     makeIRVisible(false);
+                    float val = valueTreeState.getParameterAsValue(mainKnob.ID).getValue();
+                    DBG("Main knob attached to: " << mainKnob.ID << ", value=" << val);
                 }
                 if (button == &ampGainButton) {
                     audioProcessor.lastBottomButton = 0;
-                    audioProcessor.lastPage1Button = 0;
                 }
                 else if (button == &gateButton) {
                     audioProcessor.lastBottomButton = 1;
-                    audioProcessor.lastPage1Button = 1;
                 }
                 else if (button == &eqButton) {
                     audioProcessor.lastBottomButton = 2;
-                    audioProcessor.lastPage1Button = 2;
                 }
-                else if (button == &reverbButton) {
-                    audioProcessor.lastBottomButton = 6;
-                    audioProcessor.lastPage2Button = 6;
-                    setPage1(false);
+                else if (button == &irButton) {
+                    audioProcessor.lastBottomButton = 3;
                 }
-                else if (button == &delayButton) {
-                    audioProcessor.lastBottomButton = 7;
-                    audioProcessor.lastPage2Button = 7;
-                    setPage1(false);
-                    handleDelayButtonClick(delayButtons[audioProcessor.lastDelayButton]);
-                }
-                else if (button == &delayMixButton) {
-                    audioProcessor.lastDelayButton = 0;
-                }
-                else if (button == &delayTimeButton) {
-                    audioProcessor.lastDelayButton = 1;
-                }
-                else if (button == &delayFbButton) {
-                    audioProcessor.lastDelayButton = 2;
+                else if (button == &fxButton) {
+                    audioProcessor.lastBottomButton = 4;
                 }
                 valueTreeState.state.setProperty("lastBottomButton", audioProcessor.lastBottomButton, nullptr);
-                valueTreeState.state.setProperty("lastPage1Button", audioProcessor.lastPage1Button, nullptr);
-                valueTreeState.state.setProperty("lastPage2Button", audioProcessor.lastPage2Button, nullptr);
+                int b = valueTreeState.state.getProperty("lastBottomButton");
+                DBG("from bottom click, last is " << b);
             }
         }
     }
     
-    void handleDelayButtonClick(CustomButton* clickedButton)
-    {
-        for (CustomButton* button : delayButtons)
-        {
-            if (button != clickedButton)
-            {
-                button->turnOff();
-                DBG(button->buttonID << " OFF");
-            }
-            else {
-                DBG(button->buttonID << " ON");
-                audioProcessor.savedButtonID = button->buttonID;
-                if (button->currentState == State::Off) {
-                    button->currentState = State::On;
-                    if (audioProcessor.recalledFromPreset) {
-                        button->lastUsedID = audioProcessor.currentMainKnobID;
-                    }
-                    else {
-                        audioProcessor.currentMainKnobID = button->lastUsedID;
-                    }
-                }
-                else if (button->currentState == State::On) {
-                    if (audioProcessor.recalledFromPreset) {
-                        button->lastUsedID = audioProcessor.currentMainKnobID;
-                    }
-                    else if (isStandalone) {
-                        if (audioProcessor.justOpenedBottom) {
-                            audioProcessor.justOpenedBottom = false;
-                        }
-                        else {
-                            button->lastUsedID = button->lastUsedID == button->paramID1 ? button->paramID2 : button->paramID1;
-                            audioProcessor.currentMainKnobID = button->lastUsedID;
-                        }
-                    }
-                    else if (audioProcessor.justOpenedBottom) {
-                        audioProcessor.justOpenedBottom = false;
-                    }
-                    else {
-                        button->lastUsedID = button->lastUsedID == button->paramID1 ? button->paramID2 : button->paramID1;
-                        audioProcessor.currentMainKnobID = button->lastUsedID;
-                    }
-                }
-                mainKnob.ID = audioProcessor.currentMainKnobID;
-                mainKnobAttachment.reset();
-                mainKnobAttachment = std::make_unique<SliderAttachment>(valueTreeState, audioProcessor.currentMainKnobID, mainKnob);
-                mainKnob.setVisible(true);
-                if (button == &delayMixButton) {
-                    audioProcessor.lastDelayButton = 0;
-                }
-                else if (button == &delayTimeButton) {
-                    audioProcessor.lastDelayButton = 1;
-                }
-                else if (button == &delayFbButton) {
-                    audioProcessor.lastDelayButton = 2;
-                }
-                valueTreeState.state.setProperty("lastDelayButton", audioProcessor.lastDelayButton, nullptr);
-            }
-        }
-    }
-
-    void handleReverbButtonClick(CustomButton* clickedButton)
-    {
-        for (CustomButton* button : reverbButtons)
-        {
-            if (button != clickedButton)
-            {
-                button->turnOff();
-            }
-            else {
-                audioProcessor.savedButtonID = button->buttonID;
-                if (button->currentState == State::Off) {
-                    button->currentState = State::On;
-                    if (audioProcessor.recalledFromPreset) {
-                        button->lastUsedID = audioProcessor.currentMainKnobID;
-                    }
-                    else {
-                        audioProcessor.currentMainKnobID = button->lastUsedID;
-                    }
-                }
-                else if (button->currentState == State::On) {
-                    if (audioProcessor.recalledFromPreset) {
-                        button->lastUsedID = audioProcessor.currentMainKnobID;
-                    }
-                    else if (isStandalone) {
-                        if (audioProcessor.justOpenedBottom) {
-                            audioProcessor.justOpenedBottom = false;
-                        }
-                        else {
-                            button->lastUsedID = button->lastUsedID == button->paramID1 ? button->paramID2 : button->paramID1;
-                            audioProcessor.currentMainKnobID = button->lastUsedID;
-                        }
-                    }
-                    else if (audioProcessor.justOpenedBottom) {
-                        audioProcessor.justOpenedBottom = false;
-                    }
-                    else {
-                        button->lastUsedID = button->lastUsedID == button->paramID1 ? button->paramID2 : button->paramID1;
-                        audioProcessor.currentMainKnobID = button->lastUsedID;
-                    }
-                }
-                mainKnob.ID = audioProcessor.currentMainKnobID;
-                mainKnobAttachment.reset();
-                mainKnobAttachment = std::make_unique<SliderAttachment>(valueTreeState, audioProcessor.currentMainKnobID, mainKnob);
-                mainKnob.setVisible(true);
-            }
-        }
-    }
-
     void makeIRVisible(bool visibility) {
         nextIRButton.setVisible(visibility);
         prevIRButton.setVisible(visibility);
@@ -1129,19 +865,16 @@ private:
         double height = 980.0;
         double mainKnobWP = (double)mainKnob.getWidth()/width;
         double mainKnobHP = (double)mainKnob.getHeight()/height;
+        DBG("gain knob width: " << inGainKnob.getWidth());
         double gainKnobWP = (double)inGainKnob.getWidth()/width;
+        DBG("gain knob height: " << inGainKnob.getHeight());
         double gainKnobHP = (double)inGainKnob.getHeight()/height;
         mainKnob.setBoundsRelative(242/980.0, 254/980.0, (double)mainKnob.getWidth()/width-0.003/*0.0009*/, (double)mainKnob.getHeight()/height);
         ampGainButton.setBoundsRelative(211.5/980.0, 746.5/980.0, (double)ampGainButton.getWidth()/width, (double)ampGainButton.getHeight()/height);
         gateButton.setBoundsRelative(326.5/980.0, 747.5/980.0, (double)gateButton.getWidth()/width, (double)gateButton.getHeight()/height);
         eqButton.setBoundsRelative(438.0/980.0, 745.0/980.0, (double)eqButton.getWidth()/width, (double)eqButton.getHeight()/height);
         irButton.setBoundsRelative(549.5/980.0, 747.0/980.0, (double)irButton.getWidth()/width, (double)irButton.getHeight()/height);
-        bottomBlankButton1.setBoundsRelative(549.5/980.0, 747.0/980.0, (double)bottomBlankButton1.getWidth()/width, (double)bottomBlankButton1.getHeight()/height);
-        reverbButton.setBoundsRelative(438.0/980.0, 745.0/980.0, (double)reverbButton.getWidth()/width, (double)reverbButton.getHeight()/height);
-        fxButton.setBoundsRelative(662.5/980.0, 747.5/980.0, (double)reverbButton.getWidth()/width, (double)reverbButton.getHeight()/height);
-        bottomBlankButton2.setBoundsRelative(662.5/980.0, 747.5/980.0, (double)bottomBlankButton2.getWidth()/width, (double)bottomBlankButton2.getHeight()/height);
-        backButton.setBoundsRelative(211.5/980.0, 746.5/980.0, (double)backButton.getWidth()/width, (double)backButton.getHeight()/height);
-        delayButton.setBoundsRelative(326.5/980.0, 747.5/980.0, (double)delayButton.getWidth()/width, (double)delayButton.getHeight()/height);
+        fxButton.setBoundsRelative(662.5/980.0, 747.5/980.0, (double)fxButton.getWidth()/width, (double)fxButton.getHeight()/height);
         double irWP = 0.14;
         double irHP = 30.0/980.0;
         double irX = 549.5/980.0+(double)gateButton.getWidth()/width/2-0.11;
@@ -1158,19 +891,10 @@ private:
         irDropdown.setAlwaysOnTop(true);
         irDropdown.repaint();
         p1Button.setBoundsRelative(212.0/980.0, 183.5/980.0, (double)p1Button.getWidth()/width, (double)p1Button.getHeight()/height);
-        blankButton1.setBoundsRelative(212.0/980.0, 183.5/980.0, (double)blankButton1.getWidth()/width, (double)blankButton1.getHeight()/height);
-        reverbMixButton.setBoundsRelative(212.0/980.0, 183.5/980.0, (double)reverbMixButton.getWidth()/width, (double)reverbMixButton.getHeight()/height);
-        delayMixButton.setBoundsRelative(212.0/980.0, 183.5/980.0, (double)delayMixButton.getWidth()/width, (double)delayMixButton.getHeight()/height);
         p2Button.setBoundsRelative(327.0/980.0, 185.5/980.0, (double)p2Button.getWidth()/width, (double)p2Button.getHeight()/height);
-        blankButton2.setBoundsRelative(327.0/980.0, 185.5/980.0, (double)blankButton2.getWidth()/width, (double)blankButton2.getHeight()/height);
-        delayTimeButton.setBoundsRelative(327.0/980.0, 185.5/980.0, (double)delayTimeButton.getWidth()/width, (double)delayTimeButton.getHeight()/height);
         p3Button.setBoundsRelative(437.5/980.0, 183/980.0, (double)p3Button.getWidth()/width, (double)p3Button.getHeight()/height);
-        blankButton3.setBoundsRelative(437.5/980.0, 185/980.0, (double)blankButton3.getWidth()/width, (double)blankButton3.getHeight()/height);
-        delayFbButton.setBoundsRelative(437.5/980.0, 183/980.0, (double)delayFbButton.getWidth()/width, (double)delayFbButton.getHeight()/height);
         p4Button.setBoundsRelative(550.0/980.0, 185.0/980.0, (double)p4Button.getWidth()/width, (double)p4Button.getHeight()/height);
-        blankButton4.setBoundsRelative(550.0/980.0, 185.0/980.0, (double)blankButton4.getWidth()/width, (double)blankButton4.getHeight()/height);
         p5Button.setBoundsRelative(663.0/980.0, 185.5/980.0, (double)p5Button.getWidth()/width, (double)p5Button.getHeight()/height);
-        blankButton5.setBoundsRelative(663.0/980.0, 185.5/980.0, (double)blankButton5.getWidth()/width, (double)blankButton5.getHeight()/height);
         presetPanel.setBounds(getLocalBounds().removeFromTop(proportionOfHeight(0.05f)));
         parameterLabel.setBoundsRelative(0.4, 0.45, 0.2, 0.06);
         parameterLabel.setFont(juce::Font("Impact", sizePortion*titleSize, juce::Font::plain));
