@@ -406,13 +406,27 @@ public:
         outLabel.setJustificationType(juce::Justification::centred);
         parameterLabel.setJustificationType(juce::Justification::centredBottom);
         parameterValueLabel.setJustificationType(juce::Justification::centred);
+
+        // Restore button state WITHOUT triggering user interaction logic
         if (!audioProcessor.hasNotClosedGUI) {
-            // if you're reopening the plugin window
-            int bottomButton = valueTreeState.state.getProperty("lastBottomButton");
-            buttons[audioProcessor.lastBottomButton]->triggerClick();
-            int presetButton = valueTreeState.state.getProperty("lastPresetButton");
-            topButtons[audioProcessor.lastPresetButton]->triggerClick();
+            // Restore bottom button (main controls)
+            restoreButtonState();
+
+            // Restore preset button (visual state only, no preset loading)
+            int presetButtonIndex = audioProcessor.lastPresetButton;
+            CustomButton* savedPresetButton = topButtons[presetButtonIndex];
+            savedPresetButton->currentState = State::On;
+            savedPresetButton->repaint();
+            valueTreeState.getParameterAsValue(savedPresetButton->stateID).setValue(true);
+
+            // Turn off other preset buttons
+            for (CustomButton* button : topButtons) {
+                if (button != savedPresetButton) {
+                    button->turnOff();
+                }
+            }
         }
+
         irDropdown.setLookAndFeel(&customLookAndFeel1);
         userIRDropdown.setLookAndFeel(&customLookAndFeel1);
     }
@@ -464,33 +478,101 @@ public:
         }
     }
     
+    // Helper: Derive currentMainKnobID from button + boolean parameters
+    juce::String getMainKnobIDForButton(CustomButton* button) {
+        if (button == &ampGainButton) {
+            return "amp gain";
+        }
+        else if (button == &gateButton) {
+            return "noise gate";
+        }
+        else if (button == &irButton) {
+            return "ir selection";
+        }
+        else if (button == &eqButton) {
+            bool isEq1 = valueTreeState.getRawParameterValue("is eq 1")->load() > 0.5f;
+            return isEq1 ? "thickness" : "presence";
+        }
+        else if (button == &fxButton) {
+            bool isFx1 = valueTreeState.getRawParameterValue("is fx 1")->load() > 0.5f;
+            return isFx1 ? "reverb" : "delay mix";
+        }
+        return "";
+    }
+
+    // Helper: Attach main knob to a parameter (used by both restoration and user clicks)
+    void attachMainKnob(const juce::String& paramID) {
+        audioProcessor.currentMainKnobID = paramID;
+        mainKnob.ID = paramID;
+        mainKnobAttachment.reset();
+        mainKnobAttachment = std::make_unique<SliderAttachment>(valueTreeState, paramID, mainKnob);
+        mainKnob.setVisible(true);
+        makeIRVisible(false);
+    }
+
+    // Restore state WITHOUT triggering user interaction logic
+    void restoreButtonState() {
+        int savedButtonIndex = audioProcessor.lastBottomButton;
+        CustomButton* savedButton = buttons[savedButtonIndex];
+
+        // Derive currentMainKnobID from saved button + boolean state
+        audioProcessor.currentMainKnobID = getMainKnobIDForButton(savedButton);
+
+        // Set button visual state (no click!)
+        savedButton->currentState = State::On;
+        savedButton->repaint();
+        valueTreeState.getParameterAsValue(savedButton->stateID).setValue(true);
+
+        // Store lastUsedID for the button
+        savedButton->lastUsedID = audioProcessor.currentMainKnobID;
+
+        // Turn off other buttons
+        for (CustomButton* button : buttons) {
+            if (button != savedButton) {
+                button->turnOff();
+            }
+        }
+
+        // Attach main knob (or show IR dropdown)
+        if (savedButton == &irButton) {
+            mainKnob.setVisible(false);
+            makeIRVisible(true);
+        } else {
+            attachMainKnob(audioProcessor.currentMainKnobID);
+        }
+
+        DBG("RESTORED button: " << savedButton->buttonID << ", mainKnobID: " << audioProcessor.currentMainKnobID);
+    }
+
+    // For compatibility with PluginProcessor - used after setStateInformation
     void activateButton(CustomButton* button) {
         audioProcessor.recalledFromPreset = true;
         button->triggerClick();
         activateDropdown(button);
     }
-    
+
+    // For compatibility with PluginProcessor - used by setMainKnobID()
     void switchAttachmentTo() {
+        // Derive which button should be active from currentMainKnobID
+        int buttonIndex = 0;
         if (audioProcessor.currentMainKnobID == "amp gain") {
-            audioProcessor.lastBottomButton = 0;
-            activateButton(&ampGainButton);
+            buttonIndex = 0;
         }
         else if (audioProcessor.currentMainKnobID == "thickness" || audioProcessor.currentMainKnobID == "presence") {
-            audioProcessor.lastBottomButton = 1;
-            activateButton(&eqButton);
+            buttonIndex = 1;
         }
         else if (audioProcessor.currentMainKnobID == "ir selection") {
-            audioProcessor.lastBottomButton = 2;
-            activateButton(&irButton);
+            buttonIndex = 2;
         }
         else if (audioProcessor.currentMainKnobID == "noise gate") {
-            audioProcessor.lastBottomButton = 3;
-            activateButton(&gateButton);
+            buttonIndex = 3;
         }
         else if (audioProcessor.currentMainKnobID == "reverb" || audioProcessor.currentMainKnobID == "delay mix") {
-            audioProcessor.lastBottomButton = 4;
-            activateButton(&fxButton); // CHANGE THIS TO FX BUTTON
+            buttonIndex = 4;
         }
+
+        audioProcessor.lastBottomButton = buttonIndex;
+        activateButton(buttons[buttonIndex]);
     }
     
     void setMainKnobVal(double val) {
@@ -728,78 +810,50 @@ private:
                 button->turnOff();
             }
             else {
-                DBG("handleButtonClick START: button=" << button->buttonID << ", currentMainKnobID=" << audioProcessor.currentMainKnobID << ", recalledFromPreset=" << (int)audioProcessor.recalledFromPreset);
                 audioProcessor.savedButtonID = button->buttonID;
-                if (button->currentState == State::Off) {
+
+                // Handle restoration mode (called from activateButton/switchAttachmentTo)
+                if (audioProcessor.recalledFromPreset) {
                     button->currentState = State::On;
-                    if (audioProcessor.recalledFromPreset) {
-                        button->lastUsedID = audioProcessor.currentMainKnobID;
-                        // Sync boolean parameter with currentMainKnobID to prevent out-of-sync issues
-                        if (button == &eqButton) {
-                            bool shouldBeEq1 = (audioProcessor.currentMainKnobID == "thickness");
-                            valueTreeState.getParameterAsValue("is eq 1").setValue(shouldBeEq1);
-                        }
-                        else if (button == &fxButton) {
-                            bool shouldBeFx1 = (audioProcessor.currentMainKnobID == "reverb");
-                            valueTreeState.getParameterAsValue("is fx 1").setValue(shouldBeFx1);
-                        }
-                        DBG("Button OFF->ON (restore): " << button->buttonID << ", lastUsedID=" << button->lastUsedID << ", currentMainKnobID=" << audioProcessor.currentMainKnobID);
-                    }
-                    else {
-                        audioProcessor.currentMainKnobID = button->lastUsedID;
-                    }
+                    button->lastUsedID = audioProcessor.currentMainKnobID;
+                    DBG("RESTORE MODE: button=" << button->buttonID << ", mainKnobID=" << audioProcessor.currentMainKnobID);
+                }
+                // Handle user clicks
+                else if (button->currentState == State::Off) {
+                    // Button was off, turn it on
+                    button->currentState = State::On;
+                    // Derive currentMainKnobID from button + boolean
+                    audioProcessor.currentMainKnobID = getMainKnobIDForButton(button);
+                    button->lastUsedID = audioProcessor.currentMainKnobID;
+                    DBG("USER CLICK (Off->On): button=" << button->buttonID << ", mainKnobID=" << audioProcessor.currentMainKnobID);
                 }
                 else if (button->currentState == State::On) {
-                    if (audioProcessor.recalledFromPreset) {
+                    // Button was already on - toggle between sub-parameters
+                    if (button == &ampGainButton) {
+                        // Toggle AMP model
+                        bool ampState = valueTreeState.getParameterAsValue("is amp 1").getValue();
+                        valueTreeState.getParameterAsValue("is amp 1").setValue(!ampState);
+                        DBG("TOGGLE AMP: is amp 1 = " << (int)!ampState);
+                    }
+                    else if (button == &eqButton) {
+                        // Toggle EQ parameter
+                        bool isEq1 = valueTreeState.getRawParameterValue("is eq 1")->load() > 0.5f;
+                        valueTreeState.getRawParameterValue("is eq 1")->store(isEq1 ? 0.0f : 1.0f);
+                        audioProcessor.currentMainKnobID = getMainKnobIDForButton(button);
                         button->lastUsedID = audioProcessor.currentMainKnobID;
-                        // Sync boolean parameter with currentMainKnobID to prevent out-of-sync issues
-                        if (button == &eqButton) {
-                            bool shouldBeEq1 = (audioProcessor.currentMainKnobID == "thickness");
-                            valueTreeState.getParameterAsValue("is eq 1").setValue(shouldBeEq1);
-                        }
-                        else if (button == &fxButton) {
-                            bool shouldBeFx1 = (audioProcessor.currentMainKnobID == "reverb");
-                            valueTreeState.getParameterAsValue("is fx 1").setValue(shouldBeFx1);
-                        }
-                        DBG("Button ON->ON (restore): " << button->buttonID << ", lastUsedID=" << button->lastUsedID << ", currentMainKnobID=" << audioProcessor.currentMainKnobID);
+                        DBG("TOGGLE EQ: is eq 1 = " << (int)!isEq1 << ", mainKnobID=" << audioProcessor.currentMainKnobID);
                     }
-//                    else if (isStandalone) {
-//                        if (audioProcessor.justOpenedBottom) {
-//                            audioProcessor.justOpenedBottom = false;
-//                        }
-//                        else {
-//                            button->lastUsedID = button->lastUsedID == button->paramID1 ? button->paramID2 : button->paramID1;
-//                            audioProcessor.currentMainKnobID = button->lastUsedID;
-//                            if (button == &ampGainButton) {
-//                                bool ampState = valueTreeState.getParameterAsValue("is amp 1").getValue();
-//                                valueTreeState.getParameterAsValue("is amp 1").setValue(!ampState);
-//                            }
-//                        }
-//                    }
-                    else if (audioProcessor.justOpenedBottom) {
-                        audioProcessor.justOpenedBottom = false;
-                    }
-                    else {
-                        if (button == &ampGainButton) {
-                            bool ampState = valueTreeState.getParameterAsValue("is amp 1").getValue();
-                            valueTreeState.getParameterAsValue("is amp 1").setValue(!ampState);
-                        }
-                        else if (button == &eqButton) {
-                            bool isEq1 = valueTreeState.getParameterAsValue("is eq 1").getValue();
-                            valueTreeState.getParameterAsValue("is eq 1").setValue(!isEq1);
-                            audioProcessor.currentMainKnobID = !isEq1 ? "thickness" : "presence";  // is eq 1 = true → thickness
-                            DBG("TOGGLE EQ: isEq1 was " << (int)isEq1 << ", now " << (int)!isEq1 << ", currentMainKnobID=" << audioProcessor.currentMainKnobID);
-                        }
-                        else if (button == &fxButton) {
-                            bool isFx1 = valueTreeState.getParameterAsValue("is fx 1").getValue();
-                            valueTreeState.getParameterAsValue("is fx 1").setValue(!isFx1);
-                            audioProcessor.currentMainKnobID = !isFx1 ? "reverb" : "delay mix";  // is fx 1 = true → reverb
-                            DBG("TOGGLE FX: isFx1 was " << (int)isFx1 << ", now " << (int)!isFx1 << ", currentMainKnobID=" << audioProcessor.currentMainKnobID);
-                        }
+                    else if (button == &fxButton) {
+                        // Toggle FX parameter
+                        bool isFx1 = valueTreeState.getRawParameterValue("is fx 1")->load() > 0.5f;
+                        valueTreeState.getRawParameterValue("is fx 1")->store(isFx1 ? 0.0f : 1.0f);
+                        audioProcessor.currentMainKnobID = getMainKnobIDForButton(button);
+                        button->lastUsedID = audioProcessor.currentMainKnobID;
+                        DBG("TOGGLE FX: is fx 1 = " << (int)!isFx1 << ", mainKnobID=" << audioProcessor.currentMainKnobID);
                     }
                 }
-                juce::AttributedString paramLabelStr;
-                juce::AttributedString paramLabelValStr;
+
+                // Update UI - show IR dropdown or attach main knob
                 if (button == &irButton) {
                     mainKnob.setVisible(false);
                     makeIRVisible(true);
@@ -810,32 +864,18 @@ private:
                     }
                 }
                 else {
-                    mainKnob.ID = audioProcessor.currentMainKnobID;
-                    mainKnobAttachment.reset();
-                    mainKnobAttachment = std::make_unique<SliderAttachment>(valueTreeState, audioProcessor.currentMainKnobID, mainKnob);
-                    mainKnob.setVisible(true);
-                    makeIRVisible(false);
-                    float val = valueTreeState.getParameterAsValue(mainKnob.ID).getValue();
-                    DBG("Main knob attached to: " << mainKnob.ID << ", value=" << val);
+                    attachMainKnob(audioProcessor.currentMainKnobID);
+                    DBG("Main knob attached to: " << audioProcessor.currentMainKnobID);
                 }
-                if (button == &ampGainButton) {
-                    audioProcessor.lastBottomButton = 0;
-                }
-                else if (button == &gateButton) {
-                    audioProcessor.lastBottomButton = 1;
-                }
-                else if (button == &eqButton) {
-                    audioProcessor.lastBottomButton = 2;
-                }
-                else if (button == &irButton) {
-                    audioProcessor.lastBottomButton = 3;
-                }
-                else if (button == &fxButton) {
-                    audioProcessor.lastBottomButton = 4;
-                }
+
+                // Update lastBottomButton
+                if (button == &ampGainButton) audioProcessor.lastBottomButton = 0;
+                else if (button == &gateButton) audioProcessor.lastBottomButton = 1;
+                else if (button == &eqButton) audioProcessor.lastBottomButton = 2;
+                else if (button == &irButton) audioProcessor.lastBottomButton = 3;
+                else if (button == &fxButton) audioProcessor.lastBottomButton = 4;
+
                 valueTreeState.state.setProperty("lastBottomButton", audioProcessor.lastBottomButton, nullptr);
-                int b = valueTreeState.state.getProperty("lastBottomButton");
-                DBG("from bottom click, last is " << b);
             }
         }
     }

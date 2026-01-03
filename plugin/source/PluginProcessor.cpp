@@ -48,11 +48,11 @@ irResampler(48000.0)
         models.resize(numModelFiles);
         unsigned long i = 0;
         for (double gain = 1.0; gain <= 10.0; gain += 0.5) {
-//            loadModel(1, gain, i);
+            loadModel(1, gain, i);
             i++;
         }
         for (double gain = 1.0; gain <= 10.0; gain += 0.5) {
-//            loadModel(2, gain, i);
+            loadModel(2, gain, i);
             i++;
         }
     }
@@ -797,7 +797,7 @@ bool EqAudioProcessor::isBusesLayoutSupported (const BusesLayout& layouts) const
 
 void EqAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages)
 {
-    return;
+//    return;
     juce::ScopedNoDenormals noDenormals;
     auto totalNumInputChannels  = getTotalNumInputChannels();
     auto totalNumOutputChannels = getTotalNumOutputChannels();
@@ -1139,8 +1139,8 @@ void EqAudioProcessor::getStateInformation (juce::MemoryBlock& destData)
     bool irDropdownState = lastTouchedDropdown == &irDropdown;
     state.setProperty("lastTouchedDropdown", irDropdownState, nullptr);
     state.setProperty("presetPath", presetPath, nullptr);
-    state.setProperty("currentMainKnobID", currentMainKnobID, nullptr);
-    DBG("SAVING currentMainKnobID: " << currentMainKnobID);
+    // NOTE: currentMainKnobID is no longer saved - it's derived from lastBottomButton + boolean parameters
+    DBG("SAVING lastBottomButton: " << lastBottomButton);
     DBG("SAVING is eq 1: " << valueTreeState.getRawParameterValue("is eq 1")->load());
     DBG("SAVING is fx 1: " << valueTreeState.getRawParameterValue("is fx 1")->load());
     state.setProperty("irVisibility", irVisibility, nullptr);
@@ -1230,13 +1230,8 @@ void EqAudioProcessor::setStateInformation (const void* data, int sizeInBytes)
             else {
                 presetVisibility = state.getProperty("presetVisibility");
             }
-            if (!state.hasProperty("currentMainKnobID")) {
-                currentMainKnobID = "amp gain";
-            }
-            else {
-                currentMainKnobID = state.getProperty("currentMainKnobID");
-            }
-            DBG("RESTORED currentMainKnobID: " << currentMainKnobID);
+            // NOTE: currentMainKnobID is no longer restored - it's derived in ButtonsAndKnobs::restoreButtonState()
+            DBG("RESTORED lastBottomButton: " << lastBottomButton);
             DBG("RESTORED is eq 1: " << valueTreeState.getRawParameterValue("is eq 1")->load());
             DBG("RESTORED is fx 1: " << valueTreeState.getRawParameterValue("is fx 1")->load());
             if (state.getProperty("p1n") == "The Rocker") {
