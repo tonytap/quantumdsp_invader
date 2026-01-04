@@ -220,7 +220,7 @@ namespace Gui
             audioProcessor.setAmp();
             audioProcessor.valueTreeState.state.setProperty("currentMainKnobID", "amp gain", nullptr);
             audioProcessor.setMainKnobID();
-            // EQ filter values are handled in processBlock via thicknessParameter and presenceParameter
+            // EQ filter values are handled in processBlock via eq1Parameter and eq2Parameter
             bool irDropdownState = state.getProperty("lastTouchedDropdown");
             audioProcessor.lastTouchedDropdown = irDropdownState ? &(audioProcessor.irDropdown) : &(audioProcessor.userIRDropdown);
         }

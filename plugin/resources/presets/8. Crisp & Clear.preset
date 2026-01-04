@@ -26,8 +26,8 @@
   <PARAM id="p3 state" value="0"/>
   <PARAM id="p4 state" value="0"/>
   <PARAM id="p5 state" value="0"/>
-  <PARAM id="presence" value="5.0"/>
+  <PARAM id="eq2" value="5.0"/>
   <PARAM id="reverb" value="0.07000000029802322"/>
   <PARAM id="reverb state" value="0"/>
-  <PARAM id="thickness" value="0.9000000953674316"/>
+  <PARAM id="eq1" value="0.9000000953674316"/>
 </MLGuitarAmp>

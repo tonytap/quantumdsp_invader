@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<MLGuitarAmp presetName="Seattle (AIC)" version="1.0.0" presetPath="" currentMainKnobID="thickness"
+<MLGuitarAmp presetName="Seattle (AIC)" version="1.0.0" presetPath="" currentMainKnobID="eq1"
              irVisibility="0" lastPresetButton="0" lastBottomButton="2" presetVisibility="1"
              irOption="7" customIROption="36" savedButton="eq" p1n="Seattle (AIC)"
              p2n="Factory 2" p3n="Factory 3" p4n="Factory 4" p5n="Factory 5"
@@ -26,8 +26,8 @@
   <PARAM id="p3 state" value="0"/>
   <PARAM id="p4 state" value="0"/>
   <PARAM id="p5 state" value="0"/>
-  <PARAM id="presence" value="0.5999999046325684"/>
+  <PARAM id="eq2" value="0.5999999046325684"/>
   <PARAM id="reverb" value="0.0"/>
   <PARAM id="reverb state" value="0"/>
-  <PARAM id="thickness" value="0.7000002861022949"/>
+  <PARAM id="eq1" value="0.7000002861022949"/>
 </MLGuitarAmp>

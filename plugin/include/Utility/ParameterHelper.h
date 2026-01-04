@@ -17,8 +17,8 @@ namespace Utility
 			return AudioProcessorValueTreeState::ParameterLayout{
 				std::make_unique<AudioParameterFloat>("input gain", "Input Gain", NormalisableRange<float>{-20.f, 20.f, 0.1f}, 0.f),
 				std::make_unique<AudioParameterFloat>("output gain", "Output Gain", NormalisableRange<float>{-20.f, 20.f, 0.1f}, 0.f),
-                std::make_unique<AudioParameterFloat>("presence", "Presence", NormalisableRange<float>{-6.f, 6.f, 0.1f}, 0.f),
-                std::make_unique<AudioParameterFloat>("thickness", "Thickness", NormalisableRange<float>{-6.f, 6.f, 0.1f}, 0.f),
+                std::make_unique<AudioParameterFloat>("eq2", "eq2", NormalisableRange<float>{-6.f, 6.f, 0.1f}, 0.f),
+                std::make_unique<AudioParameterFloat>("eq1", "eq1", NormalisableRange<float>{-6.f, 6.f, 0.1f}, 0.f),
                 std::make_unique<AudioParameterFloat>("reverb", "Reverb", NormalisableRange<float>{0.f, 1.f, 0.01f}, 0.f),
                 std::make_unique<AudioParameterFloat>("delay mix", "Delay Mix", NormalisableRange<float>{0.f, 1.f, 0.01f}, 0.f),
                 std::make_unique<AudioParameterFloat>("delay feedback", "Delay Feedback", NormalisableRange<float>{0.0f, 1.f, 0.01f}, 0.3f),

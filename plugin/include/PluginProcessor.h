@@ -24,6 +24,7 @@
 #include "Service/PresetManager.h"
 #include <LicenseSpring/LicenseManager.h>
 #include "AppConfig.h"
+#include "defines.h"
 
 using namespace std;
 using namespace juce;
@@ -90,8 +91,8 @@ public:
     PeakNotch GlobalEQ;
     Shelf HS5k;
     
-    std::atomic<float>* thicknessParameter  = nullptr;
-    std::atomic<float>* presenceParameter  = nullptr;
+    std::atomic<float>* eq1Parameter  = nullptr;
+    std::atomic<float>* eq2Parameter  = nullptr;
     struct SchroederReverb *Hall = initReverb(1.f, 0.f, 0.55f, 0.9f);
     std::vector<std::unique_ptr<Delay>> channelDelays;
     std::atomic<float>* delayMixParam = nullptr;
@@ -241,8 +242,8 @@ private:
     juce::LinearSmoothedValue<float> inputGain {1.f};
     juce::LinearSmoothedValue<float> outputGain {1.f};
     juce::LinearSmoothedValue<float> hallWet {0.f};
-    juce::LinearSmoothedValue<float> thicknessGain {0.f};
-    juce::LinearSmoothedValue<float> presenceGain {0.f};
+    juce::LinearSmoothedValue<float> eq1Gain {0.f};
+    juce::LinearSmoothedValue<float> eq2Gain {0.f};
     unsigned long numModelFiles = 38;
     juce::String presetPath = "";
     std::shared_ptr<dsp::ImpulseResponse> identityIR;

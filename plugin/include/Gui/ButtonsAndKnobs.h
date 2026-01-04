@@ -43,7 +43,7 @@ inline std::array<float, 40> opacityValues = {
     0.02595754f, 0.02302227f, 0.02041892f, 0.01810996f, 0.01606209f,
     0.0142458f, 0.01263489f, 0.01120614f, 0.00993896f, 0.00881506f
 };
-inline std::array<float, 40> thicknessValues = {
+inline std::array<float, 40> eq1Values = {
     0.012, 0.012742038558544316, 0.013529962218952508, 0.014366608357461723, 0.015254989803856858, 0.01619830569091204, 0.01719995297472408, 0.018263538667423605, 0.019392892826314723, 0.0205920823462183, 0.021865425604686108, 0.023217508012824378, 0.024653198527726652, 0.026177667185978415, 0.027796403721373097, 0.029515237333883393, 0.031340357681077416, 0.03327833716757157, 0.03533615461278629, 0.037521220382233864, 0.039841403072838566, 0.04230505784838459, 0.04492105652713034, 0.04769881952993697, 0.05064834980395863, 0.053780268844056775, 0.05710585494165425, 0.0606370837987664, 0.06438667165346369, 0.06836812107206389, 0.07259576957295534, 0.0770848412571496, 0.081851501631489, 0.08691291582193214, 0.09228731038654797, 0.09799403895081182, 0.10405365190156148, 0.11048797039058698, 0.11732016491434685, 0.12457483875278212
 };
 
@@ -242,26 +242,26 @@ public:
             angleRotated = ((val-min) / (max-min))*(endAngle-startAngle);
             juce::Colour lightColour((uint8)0x56, (uint8)0xf9, (uint8)0x7c, (float)1.0f);
             g.setColour(lightColour);
-            float thickness = 0.96;
+            float eq1 = 0.96;
             if (ID == "input gain" || ID == "output gain") {
-                thickness = 0.9;
+                eq1 = 0.9;
             }
             juce::Random random;
             // Draw glow effect around the arc by creating multiple layers of slightly larger arcs
             for (int i = 0; i < 40; ++i) {  // Number of glow layers
                 float opacity = opacityValues[i]; // Exponential decay for opacity
-                float glowThickness = thickness + thicknessValues[i]; // Increase thickness for each layer
+                float gloweq1 = eq1 + eq1Values[i]; // Increase eq1 for each layer
                 juce::Colour glowColour = lightColour.withAlpha(opacity); // Adjust opacity for glow
 
                 g.setColour(glowColour);
                 Path glowArc;
-                glowArc.addPieSegment(lightBarBounds, startAngle, startAngle + angleRotated, glowThickness);
+                glowArc.addPieSegment(lightBarBounds, startAngle, startAngle + angleRotated, gloweq1);
                 g.fillPath(glowArc);
             }
             // Draw the main arc path
             g.setColour(lightColour);
             Path filledArc1;
-            filledArc1.addPieSegment(lightBarBounds, startAngle, startAngle + angleRotated, thickness);
+            filledArc1.addPieSegment(lightBarBounds, startAngle, startAngle + angleRotated, eq1);
             g.fillPath(filledArc1);
         }
 
@@ -306,10 +306,10 @@ public:
             else if (ID == "delay mix") {
                 makeDisplayString("DELAY\n", val, &paramLabelStr, &paramLabelStrVal);
             }
-            else if (ID == "thickness") {
+            else if (ID == "eq1") {
                 makeDisplayString("NEUTRALIZE\n", val, &paramLabelStr, &paramLabelStrVal);
             }
-            else if (ID == "presence") {
+            else if (ID == "eq2") {
                 makeDisplayString("VAPORIZE\n", val, &paramLabelStr, &paramLabelStrVal);
             }
             else if (ID == "noise gate") {
@@ -356,7 +356,7 @@ class CentralComponents : public Component, ComboBox::Listener//, public juce::T
 public:
     CentralComponents(const void* knobImg, int knobImgSize, EqAudioProcessor& p, juce::AudioProcessorValueTreeState& vts, const void* knobImg2, int knobImg2Size)
     : ampGainButton(vts, BinaryData::buttongainon_png, BinaryData::buttongainon_pngSize, BinaryData::buttongainoff_png, BinaryData::buttongainoff_pngSize, "gain state", "gain", "amp gain", "amp gain"),
-    eqButton(vts, BinaryData::button_eq_on_png, BinaryData::button_eq_on_pngSize, BinaryData::button_eq_off_png, BinaryData::button_eq_off_pngSize, "eq state", "eq", "thickness", "presence"),
+    eqButton(vts, BinaryData::button_eq_on_png, BinaryData::button_eq_on_pngSize, BinaryData::button_eq_off_png, BinaryData::button_eq_off_pngSize, "eq state", "eq", "eq1", "eq2"),
     irButton(vts, BinaryData::button_ir_on_png, BinaryData::button_ir_on_pngSize, BinaryData::button_ir_off_png, BinaryData::button_ir_off_pngSize, "ir state", "ir", "ir selection", "ir selection"),
     gateButton(vts, BinaryData::buttongateon_png, BinaryData::buttongateon_pngSize, BinaryData::buttongateoff_png, BinaryData::buttongateoff_pngSize, "gate state", "gate", "noise gate", "noise gate"),
     fxButton(vts, BinaryData::button_fx_on_png, BinaryData::button_fx_on_pngSize, BinaryData::button_fx_off_png, BinaryData::button_fx_off_pngSize, "reverb state", "reverb", "reverb", "delay mix"),
@@ -499,7 +499,7 @@ public:
         }
         else if (button == &eqButton) {
             bool isEq1 = valueTreeState.getRawParameterValue("is eq 1")->load() > 0.5f;
-            return isEq1 ? "thickness" : "presence";
+            return isEq1 ? "eq1" : "eq2";
         }
         else if (button == &fxButton) {
             bool isFx1 = valueTreeState.getRawParameterValue("is fx 1")->load() > 0.5f;
@@ -572,7 +572,7 @@ public:
         if (audioProcessor.currentMainKnobID == "amp gain") {
             buttonIndex = 0;
         }
-        else if (audioProcessor.currentMainKnobID == "thickness" || audioProcessor.currentMainKnobID == "presence") {
+        else if (audioProcessor.currentMainKnobID == "eq1" || audioProcessor.currentMainKnobID == "eq2") {
             buttonIndex = 1;
         }
         else if (audioProcessor.currentMainKnobID == "ir selection") {

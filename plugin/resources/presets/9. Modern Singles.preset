@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<MLGuitarAmp presetName="No Need to Worry" version="1.0.0" presetPath="" currentMainKnobID="presence"
+<MLGuitarAmp presetName="No Need to Worry" version="1.0.0" presetPath="" currentMainKnobID="eq2"
              irVisibility="0" lastPresetButton="0" lastBottomButton="2" presetVisibility="1"
              irOption="9" customIROption="0" savedButton="eq" p1n="Silverchair Vibes Guitar"
              p2n="Factory 2" p3n="Factory 3" p4n="Factory 4" p5n="Factory 5"
@@ -25,8 +25,8 @@
   <PARAM id="p3 state" value="0"/>
   <PARAM id="p4 state" value="0"/>
   <PARAM id="p5 state" value="0"/>
-  <PARAM id="presence" value="4.100000381469727"/>
+  <PARAM id="eq2" value="4.100000381469727"/>
   <PARAM id="reverb" value="0.119999997317791"/>
   <PARAM id="reverb state" value="0"/>
-  <PARAM id="thickness" value="-1.199999809265137"/>
+  <PARAM id="eq1" value="-1.199999809265137"/>
 </MLGuitarAmp>

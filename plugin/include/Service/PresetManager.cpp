@@ -91,9 +91,6 @@ namespace Service
 	int PresetManager::loadNextPreset()
 	{
         const auto allPresets = getAllPresets();
-//        const auto [factoryPresets, userPresets] = getFactoryPresets(allPresets);
-//        StringArray allPresets = factoryPresets;
-//        allPresets.addArray(userPresets);
         if (allPresets.isEmpty())
             return -1;
 		const auto currentIndex = allPresets.indexOf(currentPreset.toString());

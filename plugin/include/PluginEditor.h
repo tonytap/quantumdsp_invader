@@ -123,13 +123,13 @@ private:
     bool settingsVisibility = true;
     CustomLookAndFeel1 customLookAndFeel1;
     
-    juce::Slider thicknessSlider;
-    juce::Label thicknessLabel;
-    std::unique_ptr<SliderAttachment> thicknessAttachment;
+    juce::Slider eq1Slider;
+    juce::Label eq1Label;
+    std::unique_ptr<SliderAttachment> eq1Attachment;
     
-    juce::Slider presenceSlider;
-    juce::Label presenceLabel;
-    std::unique_ptr<SliderAttachment> presenceAttachment;
+    juce::Slider eq2Slider;
+    juce::Label eq2Label;
+    std::unique_ptr<SliderAttachment> eq2Attachment;
     
     juce::Slider ampRotary;
     std::unique_ptr<SliderAttachment> ampGainAttachment;

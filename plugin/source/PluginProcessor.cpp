@@ -83,8 +83,8 @@ irResampler(48000.0)
         reverbWetL[i] = 0;
         reverbWetR[i] = 0;
     }
-    thicknessParameter = valueTreeState.getRawParameterValue("thickness");
-    presenceParameter = valueTreeState.getRawParameterValue("presence");
+    eq1Parameter = valueTreeState.getRawParameterValue("eq1");
+    eq2Parameter = valueTreeState.getRawParameterValue("eq2");
 
     // Initialize LicenseSpring
     AppConfig appConfig( "Invader", "1.2.0" );
@@ -711,8 +711,8 @@ void EqAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
     inputGain.reset(sampleRate, tSmooth);
     outputGain.reset(sampleRate, tSmooth);
     hallWet.reset(sampleRate, tSmooth);
-    thicknessGain.reset(sampleRate, tSmooth);
-    presenceGain.reset(sampleRate, tSmooth);
+    eq1Gain.reset(sampleRate, tSmooth);
+    eq2Gain.reset(sampleRate, tSmooth);
     in_buf.resize(fftSize);
     orderedInBuf.resize(fftSize);
     inPtr = 0;
@@ -933,26 +933,26 @@ void EqAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::Mid
                 }
             }
         }
-        thicknessGain.setTargetValue((*thicknessParameter).load());
-        presenceGain.setTargetValue((*presenceParameter).load());
+        eq1Gain.setTargetValue((*eq1Parameter).load());
+        eq2Gain.setTargetValue((*eq2Parameter).load());
         for (int channel = 0; channel < totalNumInputChannels; ++channel)
         {
             auto* channelData = buffer.getWritePointer (channel);
             for (int i = 0; i < buffer.getNumSamples(); i++) {
                 float x = channelData[i];
-                float thicknessVal = thicknessGain.getNextValue();  // -6 to +6 dB
-                float presenceVal = presenceGain.getNextValue();    // -6 to +6 dB
+                float eq1Val = eq1Gain.getNextValue();  // -6 to +6 dB
+                float eq2Val = eq2Gain.getNextValue();    // -6 to +6 dB
 
-                // Apply Thickness EQ
-                PN150.setValues(thicknessVal, "g");
+                // Apply eq1 EQ
+                PN150.setValues(eq1Val, "g");
                 float y150 = PN150.applyPN(x, channel);
-                PN800.setValues(2.0f * thicknessVal, "g");
+                PN800.setValues(2.0f * eq1Val, "g");
                 float y800 = PN800.applyPN(y150, channel);
 
-                // Apply Presence EQ
-                PN4k.setValues(2.0f * presenceVal, "g");
+                // Apply eq2 EQ
+                PN4k.setValues(2.0f * eq2Val, "g");
                 float y4k = PN4k.applyPN(y800, channel);
-                HS5k.setValues(2.0f + presenceVal, "g");
+                HS5k.setValues(2.0f + eq2Val, "g");
                 float y5k = HS5k.applyHS(y4k, channel);
 
                 // Apply global EQ
@@ -1270,12 +1270,12 @@ void EqAudioProcessor::setStateInformation (const void* data, int sizeInBytes)
                 sizePortion = state.getProperty("size");
             }
             setAmp();
-            float thickness = valueTreeState.getParameterAsValue("thickness").getValue();
-            PN150.setValues(thickness, "g");
-            PN800.setValues(2*thickness, "g");
-            float presence = valueTreeState.getParameterAsValue("presence").getValue();
-            PN4k.setValues(2*presence, "g");
-            HS5k.setValues(2.0+presence, "g");
+            float eq1 = valueTreeState.getParameterAsValue("eq1").getValue();
+            PN150.setValues(eq1, "g");
+            PN800.setValues(2*eq1, "g");
+            float eq2 = valueTreeState.getParameterAsValue("eq2").getValue();
+            PN4k.setValues(2*eq2, "g");
+            HS5k.setValues(2.0+eq2, "g");
             juce::String dspPath (valueTreeState.state.getProperty("customIR"));
             juce::StringArray customIRs = loadUserIRsFromDirectory(dspPath);
             resampleUserIRs(projectSr);
