@@ -196,18 +196,10 @@ private:
         inClip.repaint();
         outMeterL.repaint();
         outClipL.repaint();
-        juce::String txt = cc.parameterLabel.getText(true);
-        cc.parameterLabel.setText(txt, juce::dontSendNotification);
-        if (audioProcessor.justOpenedPreset && audioProcessor.justOpenedBottom) {
-            // if open for the very first time, make sure to set Factory 1 preset
-            if (!state.hasProperty("firstLoad")) {
-                state.setProperty("firstLoad", false, nullptr);
-                cc.setButtonState(audioProcessor.lastBottomButton, audioProcessor.lastPresetButton);
-            }
-            else {
-                cc.setButtonState(audioProcessor.lastBottomButton, audioProcessor.lastPresetButton, true);
-            }
-        }
+
+        // NOTE: Button state restoration now handled by CentralComponents::restoreButtonState()
+        // Old restoration code using triggerClick() removed to prevent interference with boolean parameters
+        // Removed lines that were reading and re-setting label text, which was preserving wrong label
     }
     bool ampOnState, amp1State, boostState, customIRState;
 

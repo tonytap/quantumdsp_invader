@@ -797,14 +797,13 @@ bool EqAudioProcessor::isBusesLayoutSupported (const BusesLayout& layouts) const
 
 void EqAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages)
 {
-//    return;
     juce::ScopedNoDenormals noDenormals;
     auto totalNumInputChannels  = getTotalNumInputChannels();
     auto totalNumOutputChannels = getTotalNumOutputChannels();
     
     for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
         buffer.clear (i, 0, buffer.getNumSamples());
-
+//    return;
     if (licenseActivated.load() && !licenseVisibility.load()) {
         float* chL = buffer.getWritePointer(0);
         float* chR = nullptr;

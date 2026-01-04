@@ -56,7 +56,7 @@ inline void makeDisplayString(const juce::String ID, float val, juce::Attributed
     if (ID == "GAIN 1\n" || ID == "GAIN 2\n") {
         strVal->append(juce::String(val, 1));//, valueFont);
     }
-    else if (ID == "REVERB\n" || "DELAY\n") {
+    else if (ID == "REVERB\n" || ID == "DELAY\n") {
         strVal->append(juce::String((int)(val * 100)) + "%");//, valueFont);
     }
     else if (ID == "GATE\n") {
@@ -278,6 +278,10 @@ public:
     }
     void valueChanged() override
     {
+        DBG("=== CustomRotarySlider::valueChanged() called ===");
+        DBG("  ID: " << ID);
+        DBG("  recalledFromPreset: " << (int)audioProcessor.recalledFromPreset);
+        DBG("  value: " << getValue());
         double val = getValue();
         if (ID == "amp gain" || ID == "boost gain") {
             valueTreeState.getParameterAsValue("amp gain").setValue(val);
@@ -322,9 +326,13 @@ public:
             }
             juce::String str = paramLabelStr.getText();
             juce::String valStr = paramLabelStrVal.getText();
+            DBG("  str from makeDisplayString: " << str.toRawUTF8());
+            DBG("  recalledFromPreset check: " << (int)(!audioProcessor.recalledFromPreset));
             if (!audioProcessor.recalledFromPreset) {
+                DBG("  Setting label to: " << str.toRawUTF8());
                 parameterLabel->setText(str, juce::dontSendNotification);
                 parameterValueLabel->setText(valStr, juce::dontSendNotification);
+                DBG("  Label after setting: " << parameterLabel->getText().toRawUTF8());
             }
             audioProcessor.recalledFromPreset = false;
         }
@@ -408,22 +416,22 @@ public:
         parameterValueLabel.setJustificationType(juce::Justification::centred);
 
         // Restore button state WITHOUT triggering user interaction logic
-        if (!audioProcessor.hasNotClosedGUI) {
-            // Restore bottom button (main controls)
-            restoreButtonState();
+        // This runs on both first open and reopening to ensure consistent state
 
-            // Restore preset button (visual state only, no preset loading)
-            int presetButtonIndex = audioProcessor.lastPresetButton;
-            CustomButton* savedPresetButton = topButtons[presetButtonIndex];
-            savedPresetButton->currentState = State::On;
-            savedPresetButton->repaint();
-            valueTreeState.getParameterAsValue(savedPresetButton->stateID).setValue(true);
+        // Restore bottom button (main controls)
+        restoreButtonState();
 
-            // Turn off other preset buttons
-            for (CustomButton* button : topButtons) {
-                if (button != savedPresetButton) {
-                    button->turnOff();
-                }
+        // Restore preset button (visual state only, no preset loading)
+        int presetButtonIndex = audioProcessor.lastPresetButton;
+        CustomButton* savedPresetButton = topButtons[presetButtonIndex];
+        savedPresetButton->currentState = State::On;
+        savedPresetButton->repaint();
+        valueTreeState.getParameterAsValue(savedPresetButton->stateID).setValue(true);
+
+        // Turn off other preset buttons
+        for (CustomButton* button : topButtons) {
+            if (button != savedPresetButton) {
+                button->turnOff();
             }
         }
 
@@ -504,8 +512,11 @@ public:
     void attachMainKnob(const juce::String& paramID) {
         audioProcessor.currentMainKnobID = paramID;
         mainKnob.ID = paramID;
+
         mainKnobAttachment.reset();
         mainKnobAttachment = std::make_unique<SliderAttachment>(valueTreeState, paramID, mainKnob);
+        // ↑ This triggers valueChanged() which will set the label during user interactions
+
         mainKnob.setVisible(true);
         makeIRVisible(false);
     }
@@ -537,6 +548,9 @@ public:
         if (savedButton == &irButton) {
             mainKnob.setVisible(false);
             makeIRVisible(true);
+            juce::String irText = audioProcessor.lastTouchedDropdown->getText();
+            parameterLabel.setText(irText, juce::dontSendNotification);
+            parameterValueLabel.setText("", juce::dontSendNotification);
         } else {
             attachMainKnob(audioProcessor.currentMainKnobID);
         }
@@ -633,9 +647,9 @@ private:
             int lastUserIR = irDropdown.getNumItems()+userIRDropdown.getSelectedId();
             audioProcessor.valueTreeState.state.setProperty("lastIR", lastUserIR, nullptr);
         }
-        if (!audioProcessor.recalledFromPreset) {
-            parameterLabel.setText(irString.getText(), juce::dontSendNotification);
-        }
+//        if (!audioProcessor.recalledFromPreset) {
+//            parameterLabel.setText(irString.getText(), juce::dontSendNotification);
+//        }
     }
     
     void setComponentInfo(CustomButton* button, juce::ComboBox* ir = nullptr, juce::ComboBox* userIR = nullptr, juce::TextButton* next = nullptr, juce::TextButton* prev = nullptr, juce::TextButton* custom = nullptr)
@@ -756,27 +770,27 @@ private:
                 else if (button->currentState == State::On) {
                     if (audioProcessor.recalledFromPreset) {
                     }
-                    else if (isStandalone) {
-                        if (audioProcessor.justOpenedPreset) {
-                            audioProcessor.justOpenedPreset = false;
-                            activateDropdown(button, isEdited);
-                        }
-                        else {
-                            audioProcessor.presetVisibility = !audioProcessor.presetVisibility;
-                        }
+//                    else if (isStandalone) {
+                    if (audioProcessor.justOpenedPreset) {
+                        audioProcessor.justOpenedPreset = false;
+                        activateDropdown(button, isEdited);
                     }
                     else {
-                        if (audioProcessor.justOpenedPreset) {
-                            audioProcessor.justOpenedPreset = false;
-                            activateDropdown(button, isEdited);
-                        }
-                        else if (audioProcessor.hasNotClosedGUI) {
-                            audioProcessor.presetVisibility = !audioProcessor.presetVisibility;
-                        }
-                        else {
-                            audioProcessor.hasNotClosedGUI = true;
-                        }
+                        audioProcessor.presetVisibility = !audioProcessor.presetVisibility;
                     }
+//                    }
+//                    else {
+//                        if (audioProcessor.justOpenedPreset) {
+//                            audioProcessor.justOpenedPreset = false;
+//                            activateDropdown(button, isEdited);
+//                        }
+//                        else if (audioProcessor.hasNotClosedGUI) {
+//                            audioProcessor.presetVisibility = !audioProcessor.presetVisibility;
+//                        }
+//                        else {
+//                            audioProcessor.hasNotClosedGUI = true;
+//                        }
+//                    }
                 }
                 makePresetPanelVisible(audioProcessor.presetVisibility);
                 if (button == &p1Button) {
@@ -812,14 +826,8 @@ private:
             else {
                 audioProcessor.savedButtonID = button->buttonID;
 
-                // Handle restoration mode (called from activateButton/switchAttachmentTo)
-                if (audioProcessor.recalledFromPreset) {
-                    button->currentState = State::On;
-                    button->lastUsedID = audioProcessor.currentMainKnobID;
-                    DBG("RESTORE MODE: button=" << button->buttonID << ", mainKnobID=" << audioProcessor.currentMainKnobID);
-                }
-                // Handle user clicks
-                else if (button->currentState == State::Off) {
+                // Handle user clicks only (restoration uses restoreButtonState() instead)
+                if (button->currentState == State::Off) {
                     // Button was off, turn it on
                     button->currentState = State::On;
                     // Derive currentMainKnobID from button + boolean
@@ -833,20 +841,22 @@ private:
                         // Toggle AMP model
                         bool ampState = valueTreeState.getParameterAsValue("is amp 1").getValue();
                         valueTreeState.getParameterAsValue("is amp 1").setValue(!ampState);
-                        DBG("TOGGLE AMP: is amp 1 = " << (int)!ampState);
+                        audioProcessor.currentMainKnobID = getMainKnobIDForButton(button);
+                        button->lastUsedID = audioProcessor.currentMainKnobID;
+                        DBG("TOGGLE AMP: is amp 1 = " << (int)!ampState << ", mainKnobID=" << audioProcessor.currentMainKnobID);
                     }
                     else if (button == &eqButton) {
                         // Toggle EQ parameter
-                        bool isEq1 = valueTreeState.getRawParameterValue("is eq 1")->load() > 0.5f;
-                        valueTreeState.getRawParameterValue("is eq 1")->store(isEq1 ? 0.0f : 1.0f);
+                        bool isEq1 = valueTreeState.getParameterAsValue("is eq 1").getValue();
+                        valueTreeState.getParameterAsValue("is eq 1").setValue(!isEq1);
                         audioProcessor.currentMainKnobID = getMainKnobIDForButton(button);
                         button->lastUsedID = audioProcessor.currentMainKnobID;
                         DBG("TOGGLE EQ: is eq 1 = " << (int)!isEq1 << ", mainKnobID=" << audioProcessor.currentMainKnobID);
                     }
                     else if (button == &fxButton) {
                         // Toggle FX parameter
-                        bool isFx1 = valueTreeState.getRawParameterValue("is fx 1")->load() > 0.5f;
-                        valueTreeState.getRawParameterValue("is fx 1")->store(isFx1 ? 0.0f : 1.0f);
+                        bool isFx1 = valueTreeState.getParameterAsValue("is fx 1").getValue();
+                        valueTreeState.getParameterAsValue("is fx 1").setValue(!isFx1);
                         audioProcessor.currentMainKnobID = getMainKnobIDForButton(button);
                         button->lastUsedID = audioProcessor.currentMainKnobID;
                         DBG("TOGGLE FX: is fx 1 = " << (int)!isFx1 << ", mainKnobID=" << audioProcessor.currentMainKnobID);
@@ -857,11 +867,10 @@ private:
                 if (button == &irButton) {
                     mainKnob.setVisible(false);
                     makeIRVisible(true);
-                    if (!audioProcessor.recalledFromPreset) {
-                        juce::String irText = audioProcessor.lastTouchedDropdown->getText();
-                        parameterLabel.setText(irText, juce::dontSendNotification);
-                        parameterValueLabel.setText("", juce::dontSendNotification);
-                    }
+                    juce::String irText = audioProcessor.lastTouchedDropdown->getText();
+                    DBG("ir text = " << irText);
+                    parameterLabel.setText(irText, juce::dontSendNotification);
+                    parameterValueLabel.setText("", juce::dontSendNotification);
                 }
                 else {
                     attachMainKnob(audioProcessor.currentMainKnobID);

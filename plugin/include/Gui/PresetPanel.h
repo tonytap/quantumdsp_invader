@@ -204,11 +204,6 @@ namespace Gui
             return userPresetList;
         }
         int buttonSelected = 1;
-//        int p1n = 1;
-//        int p2n = 2;
-//        int p3n = 3;
-//        int p4n = 4;
-//        int p5n = 5;
         CustomLookAndFeel customLookAndFeel;
         juce::Label *label = nullptr;
         juce::Label *valueLabel = nullptr;
