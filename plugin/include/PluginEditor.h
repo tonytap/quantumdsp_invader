@@ -66,6 +66,7 @@ public:
         cc.setButtonState(lastBottomButton, lastPresetButton);
     }
     void buttonClicked(juce::Button *button) override;
+    CentralComponents cc;
 private:
     void showLicensePage();
     void hideLicensePage();
@@ -180,12 +181,6 @@ private:
     int cnt = 0;
     void timerCallback() override
     {
-//        double currentPitch = audioProcessor.getCurrentPitch();
-//        juce::String currentNote = audioProcessor.getCurrentNote();
-//        double currentDev = audioProcessor.getCurrentDeviation();
-//        // Format the pitch as a string and set it in the label
-//        pitchLabel.setText (juce::String (currentPitch, 2) + " Hz (" + currentNote + " + " + juce::String (currentDev, 2) + ")", juce::dontSendNotification);
-//        pitchLabel.setText (juce::String ("hello"), juce::dontSendNotification);
         float inMeterLevel = audioProcessor.getInRMS();
         float outMeterLeftLevel = audioProcessor.getOutRMS(0);
         inMeter.setLevel(inMeterLevel);
@@ -196,10 +191,6 @@ private:
         inClip.repaint();
         outMeterL.repaint();
         outClipL.repaint();
-
-        // NOTE: Button state restoration now handled by CentralComponents::restoreButtonState()
-        // Old restoration code using triggerClick() removed to prevent interference with boolean parameters
-        // Removed lines that were reading and re-setting label text, which was preserving wrong label
     }
     bool ampOnState, amp1State, boostState, customIRState;
 
@@ -209,7 +200,6 @@ private:
     
     juce::Image background, mainDial, inGainDial, outGainDial, bgLight;
 
-    CentralComponents cc;
     LicenseChecker licenseChecker;
     
     class ResizeButton : public juce::Button

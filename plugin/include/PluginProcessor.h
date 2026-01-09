@@ -28,10 +28,6 @@
 
 using namespace std;
 using namespace juce;
-#define BUFFERSIZE 32768
-#define NUM_FACTORY_PRESETS 18
-#define NUM_IRS 18
-static StringArray factoryPresets = { "The Rocker", "Capt. Crunch", "Eh-I-See!", "Soaring Lead", "Cleaning Up", "Sweet Tea Blues", "Rokk", "Crisp & Clear", "Modern Singles", "Modern Rhythms", "Anger Management", "Psychedlica", "Flying Solo", "Texas Blooze", "Vibin'", "Dreamscape", "Thrasher", "Down Under" };
 
 //==============================================================================
 /**
@@ -104,11 +100,11 @@ public:
     Eigen::VectorXf mWeight;
     std::shared_ptr<dsp::ImpulseResponse> mIR = nullptr;
     std::shared_ptr<dsp::ImpulseResponse> mStagedIR = nullptr;
-    juce::String p1n = factoryPresets[0];
-    juce::String p2n = factoryPresets[1];
-    juce::String p3n = factoryPresets[2];
-    juce::String p4n = factoryPresets[3];
-    juce::String p5n = factoryPresets[4];
+    juce::String p1n = Constants::factoryPresets[0];
+    juce::String p2n = Constants::factoryPresets[1];
+    juce::String p3n = Constants::factoryPresets[2];
+    juce::String p4n = Constants::factoryPresets[3];
+    juce::String p5n = Constants::factoryPresets[4];
     Service::PresetManager& getPresetManager() { return *presetManager; }
     bool ampOn = false;
     float ampGain = 1.f;
@@ -210,12 +206,14 @@ public:
     bool p5Switched = false;
     juce::String currentMainKnobID = "amp gain";
     void setMainKnobID();
+    void restoreEditorButtonState();
     juce::String savedButtonID = "gain";
     bool recalledFromPreset = false;
     bool justOpenedBottom = true;
     bool justOpenedPreset = true;
     bool justOpenedGUI = true;
     bool hasNotClosedGUI = true;
+    bool hasLoadedState = false;
     bool irVisibility = false;
     bool presetVisibility = false;
     void setMainKnobVal(double val);
@@ -235,9 +233,9 @@ private:
     std::atomic<float> smoothMix { 0.f };
     std::unique_ptr<Service::PresetManager> presetManager;
     //==============================================================================
-    array<NAM_SAMPLE, BUFFERSIZE> dataIn = {};
-    array<NAM_SAMPLE, BUFFERSIZE> dataOut = {};
-    array<NAM_SAMPLE, BUFFERSIZE> crossfadeBuffer = {};
+    array<NAM_SAMPLE, Constants::BUFFERSIZE> dataIn = {};
+    array<NAM_SAMPLE, Constants::BUFFERSIZE> dataOut = {};
+    array<NAM_SAMPLE, Constants::BUFFERSIZE> crossfadeBuffer = {};
     double **irIn;
     juce::LinearSmoothedValue<float> inputGain {1.f};
     juce::LinearSmoothedValue<float> outputGain {1.f};

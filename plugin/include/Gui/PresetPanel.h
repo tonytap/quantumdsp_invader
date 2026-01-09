@@ -136,27 +136,6 @@ namespace Gui
 
 		void resized() override
 		{
-////			auto container = getLocalBounds().reduced(4);
-////			auto bounds = container;
-//            presetBackground.setBounds(getLocalBounds());
-////			saveButton.setBounds(bounds.removeFromLeft(container.proportionOfWidth(0.2f)).reduced(4));
-//            saveButton.setBoundsRelative(0.04, 0.03, 0.21, 0.46);
-//            saveButton.setAlwaysOnTop(true);
-////			previousPresetButton.setBounds(bounds.removeFromLeft(container.proportionOfWidth(0.1f)).reduced(4));
-////            previousPresetButton.setBoundsRelative(0.27, 0.03, 0.22, 0.46);
-//            previousPresetButton.setAlwaysOnTop(true);
-////            nextPresetButton.setBounds(bounds.removeFromLeft(container.proportionOfWidth(0.1f)).reduced(4));
-////            nextPresetButton.setBoundsRelative(0.51, 0.03, 0.22, 0.46);
-//            nextPresetButton.setAlwaysOnTop(true);
-////            deleteButton.setBounds(bounds.reduced(4));
-//            deleteButton.setBoundsRelative(0.75, 0.03, 0.21, 0.46);
-//            deleteButton.setAlwaysOnTop(true);
-////            presetList.setBounds(bounds.removeFromLeft(container.proportionOfWidth(0.2f)).reduced(4));
-//            presetList.setBoundsRelative(0.04, 0.52, 0.45, 0.46);
-//            presetList.setAlwaysOnTop(true);
-////            userPresetList.setBounds(bounds.removeFromLeft(container.proportionOfWidth(0.2f)).reduced(4));
-//            userPresetList.setBoundsRelative(0.51, 0.51, 0.45, 0.46);
-//            userPresetList.setAlwaysOnTop(true);
             auto container = getLocalBounds().reduced(4);
             auto bounds = container;
             saveButton.setBounds(bounds.removeFromLeft(container.proportionOfWidth(0.2f)).reduced(4));
@@ -217,12 +196,11 @@ namespace Gui
             int factoryOpt = state.getProperty("irOption");
             int customOpt = state.getProperty("customIROption");
             audioProcessor.setIRName(factoryOpt, customOpt);
-            audioProcessor.setAmp();
-            audioProcessor.valueTreeState.state.setProperty("currentMainKnobID", "amp gain", nullptr);
-            audioProcessor.setMainKnobID();
-            // EQ filter values are handled in processBlock via eq1Parameter and eq2Parameter
             bool irDropdownState = state.getProperty("lastTouchedDropdown");
             audioProcessor.lastTouchedDropdown = irDropdownState ? &(audioProcessor.irDropdown) : &(audioProcessor.userIRDropdown);
+            // Restore button state using the new restoration path
+            audioProcessor.lastBottomButton = 0;
+            audioProcessor.restoreEditorButtonState();
         }
         
 		void buttonClicked(Button* button) override
@@ -330,12 +308,12 @@ namespace Gui
 		}
         
         void setPresetItemIndex(int preset_id, juce::NotificationType notification = juce::sendNotificationAsync) {
-            if (preset_id < NUM_FACTORY_PRESETS) {
+            if (preset_id < Constants::NUM_FACTORY_PRESETS) {
                 presetList.setSelectedItemIndex(preset_id, notification);
                 userPresetList.setSelectedItemIndex(-1, juce::dontSendNotification);
             }
             else {
-                userPresetList.setSelectedItemIndex(preset_id-NUM_FACTORY_PRESETS, notification);
+                userPresetList.setSelectedItemIndex(preset_id-Constants::NUM_FACTORY_PRESETS, notification);
                 presetList.setSelectedItemIndex(-1, juce::dontSendNotification);
             }
         }

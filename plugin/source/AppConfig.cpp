@@ -1,4 +1,5 @@
 #include "AppConfig.h"
+#include "defines.h"
 #include <LicenseSpring/EncryptString.h>
 
 LicenseSpring::Configuration::ptr_t AppConfig::createLicenseSpringConfig() const
@@ -15,8 +16,8 @@ LicenseSpring::Configuration::ptr_t AppConfig::createLicenseSpringConfig() const
 
     // Provide your LicenseSpring credentials here, please keep them safe
     return LicenseSpring::Configuration::Create(
-        EncryptStr( "fdf09a08-7b14-425d-8efd-5c4eb6237ba2" ), // your LicenseSpring API key (UUID)
-        EncryptStr( "5OSqYvr0blHXhSAwY9q0VWdsv7EYnxj76eA0zAgznAk" ), // your LicenseSpring Shared key
-        EncryptStr( "Q-Invader-1" ), // product code that you specified in LicenseSpring for your application
+        EncryptStr( LS_API_KEY ), // your LicenseSpring API key (UUID)
+        EncryptStr( LS_SHARED_KEY ), // your LicenseSpring Shared key
+        EncryptStr( LS_PRODUCT_CODE ), // product code that you specified in LicenseSpring for your application
         appName, appVersion, options );
 }

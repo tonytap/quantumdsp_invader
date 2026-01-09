@@ -13,7 +13,7 @@ EqAudioProcessorEditor::EqAudioProcessorEditor (EqAudioProcessor& p, juce::Audio
     : AudioProcessorEditor (&p),
       valueTreeState (vts),
       audioProcessor (p),
-      cc(BinaryData::buttonbigdialV4_png, BinaryData::buttonbigdialV4_pngSize, p, vts, BinaryData::rotarydial_V2_png, BinaryData::rotarydial_V2_pngSize),
+      cc(BinaryData::buttonbigdial_png, BinaryData::buttonbigdial_pngSize, p, vts, BinaryData::rotarydial_png, BinaryData::rotarydial_pngSize),
       resizeButton(BinaryData::resize_png, BinaryData::resize_pngSize, BinaryData::resizehover_png, BinaryData::resizehover_pngSize, p.sizePortion),
       settingsButton(BinaryData::settingsgear_png, BinaryData::settingsgear_pngSize, BinaryData::settingsgearhover_png, BinaryData::settingsgearhover_pngSize, p.sizePortion),
       closeSettingsLabel("", ""),
@@ -65,6 +65,12 @@ EqAudioProcessorEditor::EqAudioProcessorEditor (EqAudioProcessor& p, juce::Audio
                 state.setProperty("bufferSizeInitialized", true, nullptr);
             }
         }
+    }
+
+    // Load default preset on first launch (when no .settings file exists)
+    if (!audioProcessor.hasLoadedState) {
+        // Trigger comboBoxChanged by selecting "The Rocker" (index 0, ID 1) in factory presets
+        cc.presetPanel.presetList.setSelectedItemIndex(0, juce::sendNotificationSync);
     }
 
     setSize (sizePortion*fullWidth, sizePortion*fullHeight);
@@ -148,9 +154,9 @@ void EqAudioProcessorEditor::paint (juce::Graphics& g)
     g.fillAll (getLookAndFeel().findColour (juce::ResizableWindow::backgroundColourId));
 
     g.setColour (juce::Colours::white);
-    background = juce::ImageCache::getFromMemory(BinaryData::InvaderBackground_V2_png, BinaryData::InvaderBackground_V2_pngSize);
+    background = juce::ImageCache::getFromMemory(BinaryData::background_png, BinaryData::background_pngSize);
     g.drawImageWithin(background, 0, 0, getWidth(), getHeight(), juce::RectanglePlacement::stretchToFit);
-    bgLight = juce::ImageCache::getFromMemory(BinaryData::Invaderbglight_V2_png, BinaryData::Invaderbglight_V2_pngSize);
+    bgLight = juce::ImageCache::getFromMemory(BinaryData::bglight_png, BinaryData::bglight_pngSize);
     g.drawImageWithin(bgLight, (getWidth()-sizePortion*bgLight.getWidth())/2, (getHeight()-sizePortion*bgLight.getHeight())/2, sizePortion*bgLight.getWidth(), sizePortion*bgLight.getHeight(), juce::RectanglePlacement::stretchToFit);
     mainDial = juce::ImageCache::getFromMemory(BinaryData::buttonbig_png, BinaryData::buttonbig_pngSize);
     g.drawImageWithin(mainDial, 287*sizePortion, 309.5*sizePortion, sizePortion*mainDial.getWidth(), sizePortion*mainDial.getHeight(), juce::RectanglePlacement::stretchToFit);

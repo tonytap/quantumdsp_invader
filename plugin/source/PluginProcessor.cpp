@@ -34,11 +34,11 @@ irResampler(48000.0)
 #endif
 {
     // Initialize preset button names with first 5 factory presets
-    p1n = factoryPresets[0];
-    p2n = factoryPresets[1];
-    p3n = factoryPresets[2];
-    p4n = factoryPresets[3];
-    p5n = factoryPresets[4];
+    p1n = Constants::factoryPresets[0];
+    p2n = Constants::factoryPresets[1];
+    p3n = Constants::factoryPresets[2];
+    p4n = Constants::factoryPresets[3];
+    p5n = Constants::factoryPresets[4];
 
     valueTreeState.state.setProperty(Service::PresetManager::presetNameProperty, "", nullptr);
     valueTreeState.state.setProperty("version", "1.2.0", nullptr);
@@ -59,27 +59,27 @@ irResampler(48000.0)
     amp1_dsp = models[0];
     old_model = models[0];
     irIn = new double*[1];
-    irIn[0] = new double[BUFFERSIZE];
+    irIn[0] = new double[Constants::BUFFERSIZE];
     ampOn = false;
     fftSize = 1024;
     acf.resize(fftSize);
     all_frequencies = generateReferenceFrequencies();
-    factoryIRs.resize(NUM_IRS);
-    originalFactoryIRs.resize(NUM_IRS);
-    for (int n = 1; n <= NUM_IRS; n++) {
+    factoryIRs.resize(Constants::NUM_IRS);
+    originalFactoryIRs.resize(Constants::NUM_IRS);
+    for (int n = 1; n <= Constants::NUM_IRS; n++) {
         loadIR(n);
     }
     mNoiseGateTrigger.AddListener(&mNoiseGateGain);
     userIRDropdown.setTextWhenNothingSelected("Custom IRs");
     irDropdown.setTextWhenNothingSelected("Factory IRs");
     populateIRDropdown();
-    for (int i = 0; i < NUM_FACTORY_PRESETS; i++) {
+    for (int i = 0; i < Constants::NUM_FACTORY_PRESETS; i++) {
         loadFactoryPresets(i);
     }
     reverbRp = 0;
-    reverbWetL = new float[BUFFERSIZE];
-    reverbWetR = new float[BUFFERSIZE];
-    for (int i = 0; i < BUFFERSIZE; i++) {
+    reverbWetL = new float[Constants::BUFFERSIZE];
+    reverbWetR = new float[Constants::BUFFERSIZE];
+    for (int i = 0; i < Constants::BUFFERSIZE; i++) {
         reverbWetL[i] = 0;
         reverbWetR[i] = 0;
     }
@@ -160,7 +160,7 @@ std::tuple<std::unique_ptr<juce::XmlElement>, juce::File> EqAudioProcessor::writ
 }
 
 void EqAudioProcessor::loadFactoryPresets(int i) {
-     juce::String name = factoryPresets[i];
+     juce::String name = Constants::factoryPresets[i];
      const void* data;
      int size;
      if (i == 0) {
@@ -252,6 +252,7 @@ void EqAudioProcessor::loadFactoryPresets(int i) {
 }
 
 void EqAudioProcessor::loadModel(const int amp_idx, double gainLvl, unsigned long i) {
+    return;
     juce::String modelName = "AMP"+juce::String(amp_idx)+"-GAIN"+juce::String(gainLvl, 1)+".wav.nam";
     const void* modelData = nullptr;
     int modelSize = 0;
@@ -469,6 +470,7 @@ void EqAudioProcessor::loadModel(const int amp_idx, double gainLvl, unsigned lon
 }
 
 void EqAudioProcessor::loadIR(const int i, double sampleRate) {
+    return;
     const char* irData = nullptr;
     int irSize = 0;
     juce::String irName;
@@ -735,9 +737,9 @@ void EqAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
     rmsIn.setCurrentAndTargetValue(-100.f);
     reverbWp = (int)(sampleRate*0.035);
     projectSr = sampleRate;
-    mResampler1.Reset(projectSr, BUFFERSIZE);
-    mResampler2.Reset(projectSr, BUFFERSIZE);
-    irResampler.Reset(projectSr, BUFFERSIZE);
+    mResampler1.Reset(projectSr, Constants::BUFFERSIZE);
+    mResampler2.Reset(projectSr, Constants::BUFFERSIZE);
+    irResampler.Reset(projectSr, Constants::BUFFERSIZE);
     resampleFactoryIRs(projectSr);
     resampleUserIRs(projectSr);
 
@@ -749,7 +751,8 @@ void EqAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
 
 void EqAudioProcessor::resampleFactoryIRs(double targetSr)
 {
-    for (int i = 0; i < NUM_IRS; i++) {
+    return;
+    for (int i = 0; i < Constants::NUM_IRS; i++) {
         const auto irData = originalFactoryIRs[i]->GetData();
         factoryIRs[i] = std::make_unique<dsp::ImpulseResponse>(irData, targetSr);
     }
@@ -757,6 +760,7 @@ void EqAudioProcessor::resampleFactoryIRs(double targetSr)
 
 void EqAudioProcessor::resampleUserIRs(double targetSr)
 {
+    return;
     for (int i = 0; i < userIRs.size(); i++) {
         const auto irData = originalUserIRs[i]->GetData();
         userIRs[i] = std::make_unique<dsp::ImpulseResponse>(irData, targetSr);
@@ -803,7 +807,7 @@ void EqAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::Mid
     
     for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
         buffer.clear (i, 0, buffer.getNumSamples());
-//    return;
+    return;
     if (licenseActivated.load() && !licenseVisibility.load()) {
         float* chL = buffer.getWritePointer(0);
         float* chR = nullptr;
@@ -964,22 +968,22 @@ void EqAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::Mid
         Hall->wet = 3.0*reverbMix/1.6666666666667;
         if (Hall->wet > 0.0) {
             if (totalNumInputChannels > 1) {
-                applyReverb(Hall, chL, chR, reverbWetL, reverbWetR, &reverbWp, buffer.getNumSamples(), BUFFERSIZE, 2);
+                applyReverb(Hall, chL, chR, reverbWetL, reverbWetR, &reverbWp, buffer.getNumSamples(), Constants::BUFFERSIZE, 2);
                 for (int i = 0; i < buffer.getNumSamples(); i++) {
                     chL[i] += reverbWetL[reverbRp];
                     chR[i] += reverbWetR[reverbRp];
                     reverbRp++;
-                    if (reverbRp >= BUFFERSIZE) {
+                    if (reverbRp >= Constants::BUFFERSIZE) {
                         reverbRp = 0;
                     }
                 }
             }
             else {
-                applyReverb(Hall, chL, chL, reverbWetL, reverbWetR, &reverbWp, buffer.getNumSamples(), BUFFERSIZE, 1);
+                applyReverb(Hall, chL, chL, reverbWetL, reverbWetR, &reverbWp, buffer.getNumSamples(), Constants::BUFFERSIZE, 1);
                 for (int i = 0; i < buffer.getNumSamples(); i++) {
                     chL[i] += reverbWetL[reverbRp];
                     reverbRp++;
-                    if (reverbRp >= BUFFERSIZE) {
+                    if (reverbRp >= Constants::BUFFERSIZE) {
                         reverbRp = 0;
                     }
                 }
@@ -1152,10 +1156,6 @@ void EqAudioProcessor::getStateInformation (juce::MemoryBlock& destData)
     state.setProperty("p4n", p4n, nullptr);
     state.setProperty("p5n", p5n, nullptr);
     state.setProperty("size", sizePortion, nullptr);
-    if (!valueTreeState.state.hasProperty("firstLoad")) {
-        valueTreeState.state.setProperty("firstLoad", true, nullptr);
-        stateInformationSet.store(true);
-    }
     DBG("Saved state after:\n");
     for (int i = 0; i < state.getNumProperties(); ++i)
     {
@@ -1171,6 +1171,7 @@ void EqAudioProcessor::setStateInformation (const void* data, int sizeInBytes)
 {
     // You should use this method to restore your parameters from this memory block,
     // whose contents will have been created by the getStateInformation() call.
+    hasLoadedState = true;  // Mark that we loaded state from settings file
     std::unique_ptr<juce::XmlElement> xmlState (getXmlFromBinary (data, sizeInBytes));
 
     if (xmlState.get() != nullptr) {
@@ -1271,11 +1272,7 @@ void EqAudioProcessor::setStateInformation (const void* data, int sizeInBytes)
             }
             setAmp();
             float eq1 = valueTreeState.getParameterAsValue("eq1").getValue();
-            PN150.setValues(eq1, "g");
-            PN800.setValues(2*eq1, "g");
             float eq2 = valueTreeState.getParameterAsValue("eq2").getValue();
-            PN4k.setValues(2*eq2, "g");
-            HS5k.setValues(2.0+eq2, "g");
             juce::String dspPath (valueTreeState.state.getProperty("customIR"));
             juce::StringArray customIRs = loadUserIRsFromDirectory(dspPath);
             resampleUserIRs(projectSr);
@@ -1334,6 +1331,13 @@ void EqAudioProcessor::setMainKnobID() {
     }
 }
 
+void EqAudioProcessor::restoreEditorButtonState() {
+    if (auto* editor = dynamic_cast<EqAudioProcessorEditor*>(getActiveEditor()))
+    {
+        editor->cc.restoreButtonState();
+    }
+}
+
 void EqAudioProcessor::setMainKnobVal(double val) {
     if (auto* editor = dynamic_cast<EqAudioProcessorEditor*>(getActiveEditor()))
     {
@@ -1349,7 +1353,7 @@ juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()
 }
 
 void EqAudioProcessor::populateIRDropdown() {
-    int numIRs = NUM_IRS;
+    int numIRs = Constants::NUM_IRS;
     for (int i = 1; i <= numIRs; i++) {
         juce::String irName = "Invader "+juce::String(i);
         irDropdown.addItem(irName, i);

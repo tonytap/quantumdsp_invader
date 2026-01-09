@@ -113,7 +113,7 @@ namespace Service
 	StringArray PresetManager::getAllPresets() const
 	{
         StringArray presets;
-        presets.addArray(factoryPresets);
+        presets.addArray(Constants::factoryPresets);
         const auto fileArray = defaultDirectory.findChildFiles(
             File::TypesOfFileToFind::findFiles, false, "*." + extension);
 
@@ -121,7 +121,7 @@ namespace Service
         for (const auto& file : fileArray)
         {
             String presetName = file.getFileNameWithoutExtension();
-            if (!factoryPresets.contains(presetName))
+            if (!Constants::factoryPresets.contains(presetName))
             {
                 userPresetFiles.add(file);
             }
@@ -142,7 +142,7 @@ namespace Service
         StringArray userPresets;
 
         // Get up to the first 5 elements for factory presets
-        int numFactoryPresets = std::min(NUM_FACTORY_PRESETS, presets.size());
+        int numFactoryPresets = std::min(Constants::NUM_FACTORY_PRESETS, presets.size());
 
         for (int i = 0; i < numFactoryPresets; ++i)
         {

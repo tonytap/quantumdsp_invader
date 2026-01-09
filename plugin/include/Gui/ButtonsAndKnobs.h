@@ -2,6 +2,7 @@
 
 #include "../PluginProcessor.h"
 #include "BinaryData.h"
+#include "../defines.h"
 #include "Gui/PresetPanel.h"
 #include <juce_audio_devices/juce_audio_devices.h>
 #include <juce_audio_processors/juce_audio_processors.h>
@@ -240,8 +241,7 @@ public:
         else {
             setAngles(-0.75, 0.75);
             angleRotated = ((val-min) / (max-min))*(endAngle-startAngle);
-            juce::Colour lightColour((uint8)0x56, (uint8)0xf9, (uint8)0x7c, (float)1.0f);
-            g.setColour(lightColour);
+            g.setColour(Constants::lightColour);
             float eq1 = 0.96;
             if (ID == "input gain" || ID == "output gain") {
                 eq1 = 0.9;
@@ -251,7 +251,7 @@ public:
             for (int i = 0; i < 40; ++i) {  // Number of glow layers
                 float opacity = opacityValues[i]; // Exponential decay for opacity
                 float gloweq1 = eq1 + eq1Values[i]; // Increase eq1 for each layer
-                juce::Colour glowColour = lightColour.withAlpha(opacity); // Adjust opacity for glow
+                juce::Colour glowColour = Constants::lightColour.withAlpha(opacity); // Adjust opacity for glow
 
                 g.setColour(glowColour);
                 Path glowArc;
@@ -259,7 +259,7 @@ public:
                 g.fillPath(glowArc);
             }
             // Draw the main arc path
-            g.setColour(lightColour);
+            g.setColour(Constants::lightColour);
             Path filledArc1;
             filledArc1.addPieSegment(lightBarBounds, startAngle, startAngle + angleRotated, eq1);
             g.fillPath(filledArc1);
@@ -288,7 +288,7 @@ public:
             audioProcessor.setAmp();
         }
         else if (ID == "ir selection") {
-            irDropdown.setSelectedId(((int)val%(NUM_IRS+1))+1);
+            irDropdown.setSelectedId(((int)val%(Constants::NUM_IRS+1))+1);
         }
         else if (ID == "preset selection") {
             int snappedValue = (int)val%((int)(getMaximum()-getMinimum()));
@@ -307,10 +307,10 @@ public:
                 makeDisplayString("DELAY\n", val, &paramLabelStr, &paramLabelStrVal);
             }
             else if (ID == "eq1") {
-                makeDisplayString("NEUTRALIZE\n", val, &paramLabelStr, &paramLabelStrVal);
+                makeDisplayString(Constants::eq1display, val, &paramLabelStr, &paramLabelStrVal);
             }
             else if (ID == "eq2") {
-                makeDisplayString("VAPORIZE\n", val, &paramLabelStr, &paramLabelStrVal);
+                makeDisplayString(Constants::eq2display, val, &paramLabelStr, &paramLabelStrVal);
             }
             else if (ID == "noise gate") {
                 makeDisplayString("GATE\n", val, &paramLabelStr, &paramLabelStrVal);
@@ -597,12 +597,12 @@ public:
     juce::Label inLabel;
     juce::Label outLabel;
     double sizePortion = 1.0;
+    Gui::PresetPanel presetPanel;
 private:
     CustomButton fxButton, gateButton, ampGainButton, eqButton, irButton, p1Button, p2Button, p3Button, p4Button, p5Button;
     CustomRotarySlider mainKnob, inGainKnob, outGainKnob;
     juce::AudioProcessorValueTreeState& valueTreeState;
     EqAudioProcessor& audioProcessor;
-    Gui::PresetPanel presetPanel;
     juce::Array<CustomButton*> buttons;
     juce::Array<CustomButton*> topButtons;
     std::unique_ptr<juce::FileChooser> irChooser;
@@ -647,6 +647,7 @@ private:
             int lastUserIR = irDropdown.getNumItems()+userIRDropdown.getSelectedId();
             audioProcessor.valueTreeState.state.setProperty("lastIR", lastUserIR, nullptr);
         }
+        parameterLabel.setText(irString.getText(), juce::dontSendNotification);
 //        if (!audioProcessor.recalledFromPreset) {
 //            parameterLabel.setText(irString.getText(), juce::dontSendNotification);
 //        }
