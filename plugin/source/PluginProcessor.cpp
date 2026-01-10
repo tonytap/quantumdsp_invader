@@ -1197,7 +1197,9 @@ void EqAudioProcessor::getStateInformation (juce::MemoryBlock& destData)
     // You should use this method to store your parameters in the memory block.
     // You could do that either as raw data, or use the XML or ValueTree classes
     // as intermediaries to make it easy to save and load complex data.
-//    juce::ValueTree state = valueTreeState.copyState();
+
+    // Note: FL Studio may cache the result of getStateInformation() called before GUI opens
+    // So we can't rely on early returns - just save what we have
     juce::ValueTree state = valueTreeState.state;
     DBG("Saved state before:\n");
     for (int i = 0; i < state.getNumProperties(); ++i)
@@ -1206,28 +1208,45 @@ void EqAudioProcessor::getStateInformation (juce::MemoryBlock& destData)
         auto propertyValue = state[propertyName].toString();
         DBG(propertyName + ": " + propertyValue << "\n");
     }
-    bool irDropdownState = lastTouchedDropdown == &irDropdown;
-    state.setProperty("lastTouchedDropdown", irDropdownState, nullptr);
 
-    // Note: customIR path is saved when user browses for a file (see ButtonsAndKnobs.h:635, 724)
-    // We preserve this path even when factory IR is selected, so we can repopulate
-    // the custom IR dropdown when reopening. lastTouchedDropdown determines which IR is active.
+    if (!state.hasProperty("lastTouchedDropdown")) {
+        bool irDropdownState = lastTouchedDropdown == &irDropdown;
+        state.setProperty("lastTouchedDropdown", irDropdownState, nullptr);
+    }
+    if (!state.hasProperty("lastPresetButton")) {
+        state.setProperty("lastPresetButton", lastPresetButton, nullptr);
+    }
+    if (!state.hasProperty("lastBottomButton")) {
+        state.setProperty("lastBottomButton", lastBottomButton, nullptr);
+    }
+    if (!state.hasProperty("presetVisibility")) {
+        state.setProperty("presetVisibility", presetVisibility, nullptr);
+    }
+    if (!state.hasProperty("irVisibility")) {
+        state.setProperty("irVisibility", irVisibility, nullptr);
+    }
+    if (!state.hasProperty("p1n")) {
+        state.setProperty("p1n", p1n, nullptr);
+    }
+    if (!state.hasProperty("p2n")) {
+        state.setProperty("p2n", p2n, nullptr);
+    }
+    if (!state.hasProperty("p3n")) {
+        state.setProperty("p3n", p3n, nullptr);
+    }
+    if (!state.hasProperty("p4n")) {
+        state.setProperty("p4n", p4n, nullptr);
+    }
+    if (!state.hasProperty("p5n")) {
+        state.setProperty("p5n", p5n, nullptr);
+    }
+    if (!state.hasProperty("size")) {
+        state.setProperty("size", sizePortion, nullptr);
+    }
 
-    state.setProperty("presetPath", presetPath, nullptr);
-    // NOTE: currentMainKnobID is no longer saved - it's derived from lastBottomButton + boolean parameters
     DBG("SAVING lastBottomButton: " << lastBottomButton);
     DBG("SAVING is eq 1: " << valueTreeState.getRawParameterValue("is eq 1")->load());
     DBG("SAVING is fx 1: " << valueTreeState.getRawParameterValue("is fx 1")->load());
-    state.setProperty("irVisibility", irVisibility, nullptr);
-    state.setProperty("lastPresetButton", lastPresetButton, nullptr);
-    state.setProperty("lastBottomButton", lastBottomButton, nullptr);
-    state.setProperty("presetVisibility", presetVisibility, nullptr);
-    state.setProperty("p1n", p1n, nullptr);
-    state.setProperty("p2n", p2n, nullptr);
-    state.setProperty("p3n", p3n, nullptr);
-    state.setProperty("p4n", p4n, nullptr);
-    state.setProperty("p5n", p5n, nullptr);
-    state.setProperty("size", sizePortion, nullptr);
     DBG("Saved state after:\n");
     for (int i = 0; i < state.getNumProperties(); ++i)
     {

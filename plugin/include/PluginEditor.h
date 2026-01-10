@@ -113,6 +113,7 @@ private:
             return;
         }
     };
+    NoOutlineLookAndFeel noOutlineLookAndFeel;
     double sizePortion = 1.0;
     void resizeButtonClicked() {
         return;

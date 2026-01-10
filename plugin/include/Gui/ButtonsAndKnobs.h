@@ -426,10 +426,16 @@ public:
     }
     
     ~CentralComponents() {
+        // Clear LookAndFeel references before destruction
+        prevIRButton.setLookAndFeel(nullptr);
+        nextIRButton.setLookAndFeel(nullptr);
+        customIRButton.setLookAndFeel(nullptr);
+        irDropdown.setLookAndFeel(nullptr);
+        userIRDropdown.setLookAndFeel(nullptr);
+
         inGainKnobAttachment.reset();
         outGainKnobAttachment.reset();
         mainKnobAttachment.reset();
-        audioProcessor.hasNotClosedGUI = false;
     }
     
     bool isEdited = true;

@@ -50,7 +50,7 @@ EqAudioProcessorEditor::EqAudioProcessorEditor (EqAudioProcessor& p, juce::Audio
     licenseChecker.setLookAndFeel(&customLookAndFeel1);
     addAndMakeVisible(licenseButton);
     licenseButton.addListener(this);
-    licenseButton.setLookAndFeel(new NoOutlineLookAndFeel());
+    licenseButton.setLookAndFeel(&noOutlineLookAndFeel);
     licenseChecker.setVisible(audioProcessor.licenseVisibility.load());
     
     // Set default buffer size to 128 on first launch (standalone only)
@@ -110,6 +110,10 @@ EqAudioProcessorEditor::EqAudioProcessorEditor (EqAudioProcessor& p, juce::Audio
     }
 
     setSize (sizePortion*fullWidth, sizePortion*fullHeight);
+
+    // Set guiHasBeenOpened AFTER any preset loading (which would wipe it out)
+    // This marks that GUI has opened at least once, so getStateInformation() can save state
+    audioProcessor.valueTreeState.state.setProperty("guiHasBeenOpened", true, nullptr);
 }
 
 void EqAudioProcessorEditor::buttonClicked(juce::Button *button) {
@@ -178,9 +182,15 @@ void EqAudioProcessorEditor::buttonClicked(juce::Button *button) {
 
 EqAudioProcessorEditor::~EqAudioProcessorEditor()
 {
+    // Clear LookAndFeel references before destruction
+    licenseChecker.setLookAndFeel(nullptr);
+    licenseButton.setLookAndFeel(nullptr);
+
     stopTimer();
     settingsButton.removeListener(this);
     resizeButton.removeListener(this);
+    licenseButton.removeListener(this);
+//    audioProcessor.guiOpened = false;
 }
 
 //==============================================================================

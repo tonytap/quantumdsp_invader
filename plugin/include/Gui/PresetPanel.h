@@ -126,6 +126,14 @@ namespace Gui
 
 		~PresetPanel()
 		{
+			// Clear LookAndFeel references before destruction
+			presetList.setLookAndFeel(nullptr);
+			userPresetList.setLookAndFeel(nullptr);
+			saveButton.setLookAndFeel(nullptr);
+			deleteButton.setLookAndFeel(nullptr);
+			previousPresetButton.setLookAndFeel(nullptr);
+			nextPresetButton.setLookAndFeel(nullptr);
+
 			saveButton.removeListener(this);
 			deleteButton.removeListener(this);
 			previousPresetButton.removeListener(this);
@@ -225,16 +233,10 @@ namespace Gui
 				);
 				fileChooser->launchAsync(FileBrowserComponent::saveMode, [&](const FileChooser& chooser)
 					{
-                        audioProcessor.valueTreeState.state.setProperty("irOption", audioProcessor.irDropdown.getSelectedId(), nullptr);
-                        audioProcessor.valueTreeState.state.setProperty("customIROption", audioProcessor.userIRDropdown.getSelectedId(), nullptr);
-                        audioProcessor.valueTreeState.state.setProperty("currentMainKnobID", audioProcessor.currentMainKnobID, nullptr);
-                        audioProcessor.valueTreeState.state.setProperty("savedButton", audioProcessor.savedButtonID, nullptr);
-                        audioProcessor.valueTreeState.state.setProperty("irVisibility", audioProcessor.irVisibility, nullptr);
-                        audioProcessor.valueTreeState.state.setProperty("p1n", audioProcessor.p1n, nullptr);
-                        audioProcessor.valueTreeState.state.setProperty("p2n", audioProcessor.p2n, nullptr);
-                        audioProcessor.valueTreeState.state.setProperty("p3n", audioProcessor.p3n, nullptr);
-                        audioProcessor.valueTreeState.state.setProperty("p4n", audioProcessor.p4n, nullptr);
-                        audioProcessor.valueTreeState.state.setProperty("p5n", audioProcessor.p5n, nullptr);
+                        // Preset files should only contain audio parameters and IR selection
+                        // GUI state (button positions, visibility, etc.) should NOT be saved in presets
+                        // IR selection is already tracked via "ir selection" parameter and "customIR" property
+
 						const auto resultFile = chooser.getResult();
 						presetManager.savePreset(resultFile.getFileNameWithoutExtension());
 						loadPresetList(false, juce::sendNotificationAsync);

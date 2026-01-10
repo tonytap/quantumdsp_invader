@@ -214,8 +214,7 @@ public:
     bool recalledFromPreset = false;
     bool justOpenedBottom = true;
     bool justOpenedPreset = true;
-    bool justOpenedGUI = true;
-    bool hasNotClosedGUI = true;
+    bool guiOpened = false;
     bool hasLoadedState = false;
     bool irVisibility = false;
     bool presetVisibility = false;
