@@ -67,9 +67,16 @@ EqAudioProcessorEditor::EqAudioProcessorEditor (EqAudioProcessor& p, juce::Audio
         }
     }
 
-    // Load default preset on first launch (when no .settings file exists)
-    if (!audioProcessor.hasLoadedState) {
-        // Trigger comboBoxChanged by selecting "The Rocker" (index 0, ID 1) in factory presets
+    // Load default preset if state is truly empty (first launch)
+    // Check state properties, not hasLoadedState, to be order-independent
+    auto state = valueTreeState.state;
+    bool stateIsEmpty = !state.hasProperty("lastBottomButton") &&
+                        !state.hasProperty("lastTouchedDropdown");
+
+    if (stateIsEmpty) {
+        DBG("Empty state detected in GUI - loading default preset via combo box");
+        // Use combo box to load preset - this triggers the complete flow including
+        // extraPresetConfig() which handles IR restoration, button updates, etc.
         cc.presetPanel.presetList.setSelectedItemIndex(0, juce::sendNotificationSync);
     }
 

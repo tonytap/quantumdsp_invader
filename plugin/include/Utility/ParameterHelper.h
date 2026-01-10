@@ -2,6 +2,7 @@
 
 //#include <JuceHeader.h>
 #include <juce_audio_processors/juce_audio_processors.h>
+#include "defines.h"
 
 using namespace juce;
 
@@ -29,7 +30,7 @@ namespace Utility
                 std::make_unique<AudioParameterBool>("is eq 1", "is eq 1", false),
                 std::make_unique<AudioParameterBool>("is fx 1", "is fx 1", false),
                 std::make_unique<AudioParameterBool>("amp smooth", "Amp Smooth", false),
-                std::make_unique<AudioParameterInt>("ir selection", "IR Selection", 0, 15, 0),
+                std::make_unique<AudioParameterInt>("ir selection", "IR Selection", 0, Constants::NUM_IRS, 0),
                 std::make_unique<AudioParameterInt>("custom ir selection", "Custom IR Selection", 1, 100, 1),
                 std::make_unique<AudioParameterInt>("model id", "Model Index", 0, 100, 0),
                 std::make_unique<AudioParameterFloat>("noise gate", "Noise Gate", NormalisableRange<float>{-100.f, 0.f, 0.1f}, -80.f),

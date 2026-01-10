@@ -195,8 +195,10 @@ public:
         updateAllIRs(customIRs);
     }
     void loadFactoryPresets(int i);
+    int findUserIRIndexByPath(const juce::String& path);
     std::vector<std::shared_ptr<dsp::ImpulseResponse>> userIRs;
     std::vector<std::shared_ptr<dsp::ImpulseResponse>> originalUserIRs;
+    std::vector<juce::String> userIRPaths;  // Store paths for recall
     juce::ComboBox irDropdown;
     juce::ComboBox userIRDropdown;
     bool p1Switched = false;

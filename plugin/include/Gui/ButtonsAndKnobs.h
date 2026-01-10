@@ -415,25 +415,34 @@ public:
         parameterLabel.setJustificationType(juce::Justification::centredBottom);
         parameterValueLabel.setJustificationType(juce::Justification::centred);
 
-        // Restore button state WITHOUT triggering user interaction logic
-        // This runs on both first open and reopening to ensure consistent state
+        // Only restore button state if there's actual state to restore
+        // If state is empty (first launch), we'll load a preset instead
+        auto state = valueTreeState.state;
+        bool stateIsEmpty = !state.hasProperty("lastBottomButton") &&
+                            !state.hasProperty("lastTouchedDropdown");
 
-        // Restore bottom button (main controls)
-        restoreButtonState();
+        if (!stateIsEmpty) {
+            // Restore button state WITHOUT triggering user interaction logic
+            // This runs when reopening to ensure consistent state
 
-        // Restore preset button (visual state only, no preset loading)
-        int presetButtonIndex = audioProcessor.lastPresetButton;
-        CustomButton* savedPresetButton = topButtons[presetButtonIndex];
-        savedPresetButton->currentState = State::On;
-        savedPresetButton->repaint();
-        valueTreeState.getParameterAsValue(savedPresetButton->stateID).setValue(true);
+            // Restore bottom button (main controls)
+            restoreButtonState();
 
-        // Turn off other preset buttons
-        for (CustomButton* button : topButtons) {
-            if (button != savedPresetButton) {
-                button->turnOff();
+            // Restore preset button (visual state only, no preset loading)
+            int presetButtonIndex = audioProcessor.lastPresetButton;
+            CustomButton* savedPresetButton = topButtons[presetButtonIndex];
+            savedPresetButton->currentState = State::On;
+            savedPresetButton->repaint();
+            valueTreeState.getParameterAsValue(savedPresetButton->stateID).setValue(true);
+
+            // Turn off other preset buttons
+            for (CustomButton* button : topButtons) {
+                if (button != savedPresetButton) {
+                    button->turnOff();
+                }
             }
         }
+        // If stateIsEmpty, PluginEditor will load default preset which handles GUI setup
 
         irDropdown.setLookAndFeel(&customLookAndFeel1);
         userIRDropdown.setLookAndFeel(&customLookAndFeel1);
@@ -573,13 +582,13 @@ public:
             buttonIndex = 0;
         }
         else if (audioProcessor.currentMainKnobID == "eq1" || audioProcessor.currentMainKnobID == "eq2") {
-            buttonIndex = 1;
-        }
-        else if (audioProcessor.currentMainKnobID == "ir selection") {
             buttonIndex = 2;
         }
-        else if (audioProcessor.currentMainKnobID == "noise gate") {
+        else if (audioProcessor.currentMainKnobID == "ir selection") {
             buttonIndex = 3;
+        }
+        else if (audioProcessor.currentMainKnobID == "noise gate") {
+            buttonIndex = 1;
         }
         else if (audioProcessor.currentMainKnobID == "reverb" || audioProcessor.currentMainKnobID == "delay mix") {
             buttonIndex = 4;
@@ -634,8 +643,7 @@ private:
             irString.append(irDropdown.getItemText(selectedId), juce::Font("Impact", titleSize, juce::Font::plain));
             audioProcessor.getFactoryIR(selectedId);
             userIRDropdown.setSelectedId(userIRDropdown.getNumItems(), juce::dontSendNotification);
-            int lastFactoryIR = irDropdown.getSelectedId();
-            audioProcessor.valueTreeState.state.setProperty("lastIR", lastFactoryIR, nullptr);
+            // Factory IR recall handled by "ir selection" parameter
             valueTreeState.getParameterAsValue("ir selection").setValue(selectedId);
         }
         else if (dropdown == &userIRDropdown) {
@@ -644,8 +652,11 @@ private:
             irString.append(userIRDropdown.getItemText(selectedId), juce::Font("Impact", titleSize, juce::Font::plain));
             audioProcessor.setCustomIR(selectedId);
             irDropdown.setSelectedId(irDropdown.getNumItems(), juce::dontSendNotification);
-            int lastUserIR = irDropdown.getNumItems()+userIRDropdown.getSelectedId();
-            audioProcessor.valueTreeState.state.setProperty("lastIR", lastUserIR, nullptr);
+
+            // Save the full path for path-based recall (not fragile index)
+            if (selectedId >= 0 && selectedId < audioProcessor.userIRPaths.size()) {
+                audioProcessor.valueTreeState.state.setProperty("customIR", audioProcessor.userIRPaths[selectedId], nullptr);
+            }
         }
         parameterLabel.setText(irString.getText(), juce::dontSendNotification);
 //        if (!audioProcessor.recalledFromPreset) {
@@ -779,19 +790,6 @@ private:
                     else {
                         audioProcessor.presetVisibility = !audioProcessor.presetVisibility;
                     }
-//                    }
-//                    else {
-//                        if (audioProcessor.justOpenedPreset) {
-//                            audioProcessor.justOpenedPreset = false;
-//                            activateDropdown(button, isEdited);
-//                        }
-//                        else if (audioProcessor.hasNotClosedGUI) {
-//                            audioProcessor.presetVisibility = !audioProcessor.presetVisibility;
-//                        }
-//                        else {
-//                            audioProcessor.hasNotClosedGUI = true;
-//                        }
-//                    }
                 }
                 makePresetPanelVisible(audioProcessor.presetVisibility);
                 if (button == &p1Button) {

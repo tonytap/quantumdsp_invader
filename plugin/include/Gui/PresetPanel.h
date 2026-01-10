@@ -192,14 +192,52 @@ namespace Gui
         ComboBox userPresetList;
 	private:
         void extraPresetConfig() {
+            // This function restores GUI state after loadPreset() has updated valueTreeState
+            // It should work identically whether called from:
+            // 1. User selecting preset via combo box
+            // 2. First launch loading default preset
+            // 3. Preset button click
+            //
+            // loadPreset() has already loaded ALL state into valueTreeState,
+            // so we just need to sync the GUI with that state.
+
             auto state = audioProcessor.valueTreeState.state;
-            int factoryOpt = state.getProperty("irOption");
-            int customOpt = state.getProperty("customIROption");
-            audioProcessor.setIRName(factoryOpt, customOpt);
-            bool irDropdownState = state.getProperty("lastTouchedDropdown");
+
+            // === IR Restoration ===
+            // Order-independent: Check lastTouchedDropdown to know which IR type was selected
+            bool irDropdownState = state.getProperty("lastTouchedDropdown", true);
             audioProcessor.lastTouchedDropdown = irDropdownState ? &(audioProcessor.irDropdown) : &(audioProcessor.userIRDropdown);
-            // Restore button state using the new restoration path
-            audioProcessor.lastBottomButton = 0;
+
+            if (!irDropdownState) {
+                // Custom IR was selected
+                juce::String customIRPath = state.getProperty("customIR", "");
+                if (customIRPath.isNotEmpty()) {
+                    // Path-based restoration (project save)
+                    juce::StringArray customIRs = audioProcessor.loadUserIRsFromDirectory(customIRPath);
+                    audioProcessor.resampleUserIRs(audioProcessor.projectSr);
+                    audioProcessor.updateAllIRs(customIRs);
+
+                    int foundIndex = audioProcessor.findUserIRIndexByPath(customIRPath);
+                    if (foundIndex >= 0) {
+                        audioProcessor.userIRDropdown.setSelectedId(foundIndex + 1, juce::dontSendNotification);
+                        audioProcessor.setCustomIR(foundIndex);
+                    }
+                } else {
+                    // Fallback to index-based (old presets)
+                    int customOpt = state.getProperty("customIROption", 0);
+                    audioProcessor.setIRName(audioProcessor.irDropdown.getNumItems(), customOpt);
+                }
+            } else {
+                // Factory IR was selected - use parameter
+                int factoryIndex = audioProcessor.valueTreeState.getRawParameterValue("ir selection")->load();
+                audioProcessor.irDropdown.setSelectedId(factoryIndex + 1, juce::dontSendNotification);
+                audioProcessor.getFactoryIR(factoryIndex);
+            }
+
+            // === Button State Restoration ===
+            // Read from loaded state, don't hardcode
+            audioProcessor.lastBottomButton = state.getProperty("lastBottomButton", 0);
+            audioProcessor.lastPresetButton = state.getProperty("lastPresetButton", 0);
             audioProcessor.restoreEditorButtonState();
         }
         
