@@ -676,6 +676,11 @@ void EqAudioProcessor::restoreIRFromState()
     bool irDropdownState = state.getProperty("lastTouchedDropdown", true);
     lastTouchedDropdown = irDropdownState ? &irDropdown : &userIRDropdown;
 
+    // Write to state tree so it gets saved
+    if (!state.hasProperty("lastTouchedDropdown")) {
+        state.setProperty("lastTouchedDropdown", irDropdownState, nullptr);
+    }
+
     if (!irDropdownState) {
         // Custom IR was selected - set dropdown selection and load IR
         if (customIRPath.isNotEmpty()) {
@@ -1209,40 +1214,9 @@ void EqAudioProcessor::getStateInformation (juce::MemoryBlock& destData)
         DBG(propertyName + ": " + propertyValue << "\n");
     }
 
-    if (!state.hasProperty("lastTouchedDropdown")) {
-        bool irDropdownState = lastTouchedDropdown == &irDropdown;
-        state.setProperty("lastTouchedDropdown", irDropdownState, nullptr);
-    }
-    if (!state.hasProperty("lastPresetButton")) {
-        state.setProperty("lastPresetButton", lastPresetButton, nullptr);
-    }
-    if (!state.hasProperty("lastBottomButton")) {
-        state.setProperty("lastBottomButton", lastBottomButton, nullptr);
-    }
-    if (!state.hasProperty("presetVisibility")) {
-        state.setProperty("presetVisibility", presetVisibility, nullptr);
-    }
-    if (!state.hasProperty("irVisibility")) {
-        state.setProperty("irVisibility", irVisibility, nullptr);
-    }
-    if (!state.hasProperty("p1n")) {
-        state.setProperty("p1n", p1n, nullptr);
-    }
-    if (!state.hasProperty("p2n")) {
-        state.setProperty("p2n", p2n, nullptr);
-    }
-    if (!state.hasProperty("p3n")) {
-        state.setProperty("p3n", p3n, nullptr);
-    }
-    if (!state.hasProperty("p4n")) {
-        state.setProperty("p4n", p4n, nullptr);
-    }
-    if (!state.hasProperty("p5n")) {
-        state.setProperty("p5n", p5n, nullptr);
-    }
-    if (!state.hasProperty("size")) {
-        state.setProperty("size", sizePortion, nullptr);
-    }
+    // getStateInformation() should ONLY save what's already in the state tree
+    // DO NOT create properties here - they're created when buttons are clicked
+    // This allows GUI constructor to detect a new instance by checking if properties exist
 
     DBG("SAVING lastBottomButton: " << lastBottomButton);
     DBG("SAVING is eq 1: " << valueTreeState.getRawParameterValue("is eq 1")->load());
@@ -1313,24 +1287,6 @@ void EqAudioProcessor::setStateInformation (const void* data, int sizeInBytes)
             }
             else {
                 lastBottomButton = state.getProperty("lastBottomButton");
-            }
-            if (!state.hasProperty("lastPage1Button")) {
-                lastPage1Button = 0;
-            }
-            else {
-                lastPage1Button = state.getProperty("lastPage1Button");
-            }
-            if (!state.hasProperty("lastPage2Button")) {
-                lastPage2Button = 6;
-            }
-            else {
-                lastPage2Button = state.getProperty("lastPage2Button");
-            }
-            if (!state.hasProperty("lastDelayButton")) {
-                lastDelayButton = 0;
-            }
-            else {
-                lastDelayButton = state.getProperty("lastDelayButton");
             }
             if(!state.hasProperty("presetVisibility")) {
                 presetVisibility = false;

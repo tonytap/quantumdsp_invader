@@ -221,9 +221,6 @@ public:
     void setMainKnobVal(double val);
     int lastPresetButton = 0;
     int lastBottomButton = 0;
-    int lastPage2Button = 6;
-    int lastPage1Button = 0;
-    int lastDelayButton = 0;
     std::atomic<bool> presetSmoothing { false };
     std::atomic<bool> stateInformationSet { false };
     double sizePortion = 0.75;

@@ -69,9 +69,7 @@ EqAudioProcessorEditor::EqAudioProcessorEditor (EqAudioProcessor& p, juce::Audio
 
     // Load default preset if state is truly empty (first launch)
     // Check state properties, not hasLoadedState, to be order-independent
-    auto state = valueTreeState.state;
-    bool stateIsEmpty = !state.hasProperty("lastBottomButton") &&
-                        !state.hasProperty("lastTouchedDropdown");
+    bool stateIsEmpty = audioProcessor.lastBottomButton == -1;
 
     DBG("=== GUI CONSTRUCTOR ===");
     DBG("hasProperty(lastBottomButton): " + juce::String(state.hasProperty("lastBottomButton") ? "true" : "false"));
@@ -84,36 +82,24 @@ EqAudioProcessorEditor::EqAudioProcessorEditor (EqAudioProcessor& p, juce::Audio
         DBG("  " + state.getPropertyName(i).toString() + ": " + state[state.getPropertyName(i)].toString());
     }
 
-    if (stateIsEmpty) {
-        DBG("Empty state detected in GUI - loading default preset by simulating P1 click");
-        // Simulate P1 button click which will trigger preset load and set all button states
-        if (cc.topButtons.size() > 0) {
-            cc.topButtons[0]->triggerClick();
-        }
-    } else {
-        // State exists - initialize buttons from saved state
-        cc.restoreButtonState();
+    // State exists - initialize buttons from saved state
+    cc.restoreButtonState();
 
-        // Initialize preset buttons
-        int presetButtonIndex = audioProcessor.lastPresetButton;
-        CustomButton* savedPresetButton = cc.topButtons[presetButtonIndex];
-        savedPresetButton->currentState = State::On;
-        savedPresetButton->repaint();
-        valueTreeState.getParameterAsValue(savedPresetButton->stateID).setValue(true);
+    // Initialize preset buttons
+    int presetButtonIndex = audioProcessor.lastPresetButton;
+    CustomButton* savedPresetButton = cc.topButtons[presetButtonIndex];
+    savedPresetButton->currentState = State::On;
+    savedPresetButton->repaint();
+    valueTreeState.getParameterAsValue(savedPresetButton->stateID).setValue(true);
 
-        // Turn off other preset buttons
-        for (CustomButton* button : cc.topButtons) {
-            if (button != savedPresetButton) {
-                button->turnOff();
-            }
+    // Turn off other preset buttons
+    for (CustomButton* button : cc.topButtons) {
+        if (button != savedPresetButton) {
+            button->turnOff();
         }
     }
 
     setSize (sizePortion*fullWidth, sizePortion*fullHeight);
-
-    // Set guiHasBeenOpened AFTER any preset loading (which would wipe it out)
-    // This marks that GUI has opened at least once, so getStateInformation() can save state
-    audioProcessor.valueTreeState.state.setProperty("guiHasBeenOpened", true, nullptr);
 }
 
 void EqAudioProcessorEditor::buttonClicked(juce::Button *button) {

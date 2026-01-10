@@ -216,9 +216,11 @@ namespace Gui
             audioProcessor.restoreIRFromState();
 
             // === Button State Restoration ===
-            // Read from loaded state, don't hardcode
+            // Always set bottom button to GAIN when loading preset
             audioProcessor.lastBottomButton = 0;
-//            audioProcessor.lastPresetButton = state.getProperty("lastPresetButton", 0);
+            audioProcessor.valueTreeState.state.setProperty("lastBottomButton", 0, nullptr);
+
+            // lastPresetButton is set by handlePresetClick() which writes to state
             audioProcessor.restoreEditorButtonState();
         }
         

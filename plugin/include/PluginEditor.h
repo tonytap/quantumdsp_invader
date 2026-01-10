@@ -43,7 +43,10 @@
 //}
 
 
-class EqAudioProcessorEditor  : public juce::AudioProcessorEditor, public juce::Timer, public juce::Button::Listener
+class EqAudioProcessorEditor  : public juce::AudioProcessorEditor,
+                                  public juce::Timer,
+                                  public juce::Button::Listener,
+                                  public juce::ValueTree::Listener
 {
 public:
     EqAudioProcessorEditor (EqAudioProcessor&, juce::AudioProcessorValueTreeState&);
@@ -55,6 +58,10 @@ public:
     void setAmp(double gainLvl);
     bool writeModelDataIfNeeded(const juce::String& modelName, const void* data, int dataSize, unsigned long i);
     void updateToggleState (juce::Button* button);
+
+    // ValueTree::Listener callbacks
+    void valueTreePropertyChanged(juce::ValueTree& treeWhosePropertyHasChanged, const juce::Identifier& property) override;
+    void refreshFromState();
 
     typedef juce::AudioProcessorValueTreeState::SliderAttachment SliderAttachment;
     typedef juce::AudioProcessorValueTreeState::ButtonAttachment ButtonAttachment;
