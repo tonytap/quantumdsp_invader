@@ -278,10 +278,10 @@ public:
     }
     void valueChanged() override
     {
-        DBG("=== CustomRotarySlider::valueChanged() called ===");
-        DBG("  ID: " << ID);
-        DBG("  recalledFromPreset: " << (int)audioProcessor.recalledFromPreset);
-        DBG("  value: " << getValue());
+//        DBG("=== CustomRotarySlider::valueChanged() called ===");
+//        DBG("  ID: " << ID);
+//        DBG("  recalledFromPreset: " << (int)audioProcessor.recalledFromPreset);
+//        DBG("  value: " << getValue());
         double val = getValue();
         if (ID == "amp gain" || ID == "boost gain") {
             valueTreeState.getParameterAsValue("amp gain").setValue(val);
@@ -540,14 +540,35 @@ public:
         if (savedButton == &irButton) {
             mainKnob.setVisible(false);
             makeIRVisible(true);
-            juce::String irText = audioProcessor.lastTouchedDropdown->getText();
+
+            // Read IR name from state tree properties, not from GUI dropdown
+            auto state = valueTreeState.state;
+            bool isFactoryIR = state.getProperty("lastTouchedDropdown", true);
+            juce::String irText;
+
+            if (isFactoryIR) {
+                // Factory IR - get name from dropdown items by index
+                int factoryIndex = valueTreeState.getRawParameterValue("ir selection")->load();
+                if (factoryIndex >= 0 && factoryIndex < irDropdown.getNumItems()) {
+                    irText = irDropdown.getItemText(factoryIndex);
+                }
+            } else {
+                // Custom IR - get filename from path
+                juce::String customIRPath = state.getProperty("customIR", "");
+                if (customIRPath.isNotEmpty()) {
+                    juce::File irFile(customIRPath);
+                    irText = irFile.getFileNameWithoutExtension();
+                }
+                if (userIRDropdown.getSelectedId() == userIRDropdown.getNumItems()) {
+                    irText = "Off";
+                }
+            }
+
             parameterLabel.setText(irText, juce::dontSendNotification);
             parameterValueLabel.setText("", juce::dontSendNotification);
         } else {
             attachMainKnob(audioProcessor.currentMainKnobID);
         }
-
-        DBG("RESTORED button: " << savedButton->buttonID << ", mainKnobID: " << audioProcessor.currentMainKnobID);
     }
 
     // For compatibility with PluginProcessor - used after setStateInformation
@@ -626,7 +647,6 @@ private:
             irString.append(irDropdown.getItemText(selectedId), juce::Font("Impact", titleSize, juce::Font::plain));
             audioProcessor.getFactoryIR(selectedId);
             userIRDropdown.setSelectedId(userIRDropdown.getNumItems(), juce::dontSendNotification);
-            // Factory IR recall handled by "ir selection" parameter
             valueTreeState.getParameterAsValue("ir selection").setValue(selectedId);
         }
         else if (dropdown == &userIRDropdown) {
@@ -639,6 +659,10 @@ private:
             // Save the full path for path-based recall (not fragile index)
             if (selectedId >= 0 && selectedId < audioProcessor.userIRPaths.size()) {
                 audioProcessor.valueTreeState.state.setProperty("customIR", audioProcessor.userIRPaths[selectedId], nullptr);
+                audioProcessor.valueTreeState.state.setProperty("customIrOff", false, nullptr);
+            }
+            else if (selectedId >= audioProcessor.userIRPaths.size()) {
+                audioProcessor.valueTreeState.state.setProperty("customIrOff", true, nullptr);
             }
         }
         parameterLabel.setText(irString.getText(), juce::dontSendNotification);
@@ -716,23 +740,37 @@ private:
                 if (file != juce::File{}) {
                     dsp::wav::LoadReturnCode wavState = dsp::wav::LoadReturnCode::ERROR_OTHER;
                     juce::String dspPath = file.getFullPathName();
-                    
+
                     //populate custom IR dropdown
                     juce::StringArray customIRs = audioProcessor.loadUserIRsFromDirectory(dspPath);
                     audioProcessor.resampleUserIRs(audioProcessor.projectSr);
+                    audioProcessor.updateAllIRs(customIRs);
+
                     juce::String selectedFileName = file.getFileNameWithoutExtension();
+                    int selectedIndex = -1;
                     for (int i = 0; i < customIRs.size() - 1; i++) { // -1 to exclude "Off"
                         if (customIRs[i] == selectedFileName) {
-                            userIRDropdown.setSelectedId(i + 1);
+                            selectedIndex = i;
                             auto raw_dspPath = dspPath.toRawUTF8();
                             audioProcessor.mStagedIR = audioProcessor.userIRs[i];
                             wavState = audioProcessor.mStagedIR->GetWavState();
-                            audioProcessor.valueTreeState.state.setProperty("customIR", dspPath, nullptr);
                             break;
                         }
                     }
+
+                    // Set dropdown selections BEFORE writing properties (to avoid listener issues)
+                    if (selectedIndex >= 0) {
+                        userIRDropdown.setSelectedId(selectedIndex + 1, juce::dontSendNotification);
+                    }
                     irDropdown.setSelectedId(irDropdown.getNumItems(), juce::dontSendNotification);
-                    audioProcessor.updateAllIRs(customIRs);
+
+                    // Write properties LAST so listeners see fully updated state
+                    audioProcessor.valueTreeState.state.setProperty("customIR", dspPath, nullptr);
+                    audioProcessor.valueTreeState.state.setProperty("lastTouchedDropdown", false, nullptr);
+
+                    // Update label
+                    parameterLabel.setText(selectedFileName, juce::dontSendNotification);
+                    parameterValueLabel.setText("", juce::dontSendNotification);
                 }
             });
         }
@@ -808,7 +846,6 @@ private:
             else {
                 audioProcessor.savedButtonID = button->buttonID;
 
-                // Handle user clicks only (restoration uses restoreButtonState() instead)
                 if (button->currentState == State::Off) {
                     // Button was off, turn it on
                     button->currentState = State::On;

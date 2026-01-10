@@ -220,7 +220,10 @@ namespace Gui
             audioProcessor.lastBottomButton = 0;
             audioProcessor.valueTreeState.state.setProperty("lastBottomButton", 0, nullptr);
 
-            // lastPresetButton is set by handlePresetClick() which writes to state
+            // Write lastPresetButton to state tree (member variable was set by button click)
+            // This must happen AFTER loadPreset()'s replaceState() to avoid being wiped out
+            audioProcessor.valueTreeState.state.setProperty("lastPresetButton", audioProcessor.lastPresetButton, nullptr);
+
             audioProcessor.restoreEditorButtonState();
         }
         
@@ -235,10 +238,6 @@ namespace Gui
 				);
 				fileChooser->launchAsync(FileBrowserComponent::saveMode, [&](const FileChooser& chooser)
 					{
-                        // Preset files should only contain audio parameters and IR selection
-                        // GUI state (button positions, visibility, etc.) should NOT be saved in presets
-                        // IR selection is already tracked via "ir selection" parameter and "customIR" property
-
 						const auto resultFile = chooser.getResult();
 						presetManager.savePreset(resultFile.getFileNameWithoutExtension());
 						loadPresetList(false, juce::sendNotificationAsync);

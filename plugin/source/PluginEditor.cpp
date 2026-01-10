@@ -67,37 +67,11 @@ EqAudioProcessorEditor::EqAudioProcessorEditor (EqAudioProcessor& p, juce::Audio
         }
     }
 
-    // Load default preset if state is truly empty (first launch)
-    // Check state properties, not hasLoadedState, to be order-independent
-    bool stateIsEmpty = audioProcessor.lastBottomButton == -1;
+    // Register as listener to state changes
+    valueTreeState.state.addListener(this);
 
-    DBG("=== GUI CONSTRUCTOR ===");
-    DBG("hasProperty(lastBottomButton): " + juce::String(state.hasProperty("lastBottomButton") ? "true" : "false"));
-    DBG("hasProperty(lastTouchedDropdown): " + juce::String(state.hasProperty("lastTouchedDropdown") ? "true" : "false"));
-    DBG("hasProperty(presetName): " + juce::String(state.hasProperty("presetName") ? "true" : "false"));
-    DBG("stateIsEmpty: " + juce::String(stateIsEmpty ? "true" : "false"));
-    DBG("hasLoadedState: " + juce::String(audioProcessor.hasLoadedState ? "true" : "false"));
-    DBG("All state properties:");
-    for (int i = 0; i < state.getNumProperties(); ++i) {
-        DBG("  " + state.getPropertyName(i).toString() + ": " + state[state.getPropertyName(i)].toString());
-    }
-
-    // State exists - initialize buttons from saved state
-    cc.restoreButtonState();
-
-    // Initialize preset buttons
-    int presetButtonIndex = audioProcessor.lastPresetButton;
-    CustomButton* savedPresetButton = cc.topButtons[presetButtonIndex];
-    savedPresetButton->currentState = State::On;
-    savedPresetButton->repaint();
-    valueTreeState.getParameterAsValue(savedPresetButton->stateID).setValue(true);
-
-    // Turn off other preset buttons
-    for (CustomButton* button : cc.topButtons) {
-        if (button != savedPresetButton) {
-            button->turnOff();
-        }
-    }
+    // Initialize UI from current state (works regardless of timing)
+    refreshFromState();
 
     setSize (sizePortion*fullWidth, sizePortion*fullHeight);
 }
@@ -168,6 +142,9 @@ void EqAudioProcessorEditor::buttonClicked(juce::Button *button) {
 
 EqAudioProcessorEditor::~EqAudioProcessorEditor()
 {
+    // Unregister state listener
+    valueTreeState.state.removeListener(this);
+
     // Clear LookAndFeel references before destruction
     licenseChecker.setLookAndFeel(nullptr);
     licenseButton.setLookAndFeel(nullptr);
@@ -176,7 +153,6 @@ EqAudioProcessorEditor::~EqAudioProcessorEditor()
     settingsButton.removeListener(this);
     resizeButton.removeListener(this);
     licenseButton.removeListener(this);
-//    audioProcessor.guiOpened = false;
 }
 
 //==============================================================================
@@ -216,10 +192,6 @@ void EqAudioProcessorEditor::resized()
     licenseButton.setBoundsRelative(0.4, 0.845, 0.195, 0.07);
     overlay.setBounds(getLocalBounds()); // Make the overlay cover the entire UI
     cc.toBack();
-//    inMeter.toFront (false);  // inMeter stays on top of cc
-//    outMeterL.toFront (false);
-//    inClip.toFront (false);
-//    outClipL.toFront (false);
 }
 
 void EqAudioProcessorEditor::updateToggleState(juce::Button* button) {
@@ -243,4 +215,42 @@ void EqAudioProcessorEditor::hideLicensePage()
 {
     overlay.setVisible(false);            // Hide the dark overlay
     licenseChecker.setVisible(false);     // Hide the license checker
+}
+
+void EqAudioProcessorEditor::valueTreePropertyChanged(juce::ValueTree& treeWhosePropertyHasChanged, const juce::Identifier& property)
+{
+    // React to GUI button state changes only
+    // IR selection (lastTouchedDropdown, customIR) is handled by restoreIRFromState() in processor
+    if (property == juce::Identifier("lastBottomButton") ||
+        property == juce::Identifier("lastPresetButton"))
+    {
+        refreshFromState();
+    }
+}
+
+void EqAudioProcessorEditor::refreshFromState()
+{
+    // Update UI from current state (parameters are handled by attachments)
+    auto state = valueTreeState.state;
+
+    // Restore button states
+    cc.restoreButtonState();
+
+    // Restore preset button selection
+    int presetButtonIndex = audioProcessor.lastPresetButton;
+    if (presetButtonIndex >= 0 && presetButtonIndex < cc.topButtons.size()) {
+        CustomButton* savedPresetButton = cc.topButtons[presetButtonIndex];
+        savedPresetButton->currentState = State::On;
+        savedPresetButton->repaint();
+        valueTreeState.getParameterAsValue(savedPresetButton->stateID).setValue(true);
+
+        // Turn off other preset buttons
+        for (CustomButton* button : cc.topButtons) {
+            if (button != savedPresetButton) {
+                button->turnOff();
+            }
+        }
+    }
+
+    // IR restoration is handled by processor's restoreIRFromState()
 }

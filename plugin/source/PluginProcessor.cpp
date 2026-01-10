@@ -113,6 +113,7 @@ irResampler(48000.0)
     for (int ch = 0; ch < getTotalNumInputChannels(); ch++) {
         channelDelays[ch] = std::make_unique<Delay>(48000.0);
     }
+    restoreIRFromState();
 }
 
 EqAudioProcessor::~EqAudioProcessor()
@@ -252,7 +253,7 @@ void EqAudioProcessor::loadFactoryPresets(int i) {
 }
 
 void EqAudioProcessor::loadModel(const int amp_idx, double gainLvl, unsigned long i) {
-    return;
+//    return;
     juce::String modelName = "AMP"+juce::String(amp_idx)+"-GAIN"+juce::String(gainLvl, 1)+".wav.nam";
     const void* modelData = nullptr;
     int modelSize = 0;
@@ -470,7 +471,7 @@ void EqAudioProcessor::loadModel(const int amp_idx, double gainLvl, unsigned lon
 }
 
 void EqAudioProcessor::loadIR(const int i, double sampleRate) {
-    return;
+//    return;
     const char* irData = nullptr;
     int irSize = 0;
     juce::String irName;
@@ -576,6 +577,7 @@ void EqAudioProcessor::loadIR(const int i, double sampleRate) {
         factoryIRs[i-1] = std::make_shared<dsp::ImpulseResponse>(irInfo, sampleRate);
         originalFactoryIRs[i-1] = std::make_shared<dsp::ImpulseResponse>(irInfo, sampleRate);
     }
+    
 }
 
 juce::StringArray EqAudioProcessor::loadUserIRsFromDirectory(const juce::String& customIRPath)
@@ -686,9 +688,13 @@ void EqAudioProcessor::restoreIRFromState()
         if (customIRPath.isNotEmpty()) {
             int foundIndex = findUserIRIndexByPath(customIRPath);
             if (foundIndex >= 0) {
-                userIRDropdown.setSelectedId(foundIndex + 1, juce::dontSendNotification);
-                setCustomIR(foundIndex);
-                DBG("Restored custom IR selection: " << customIRPath << " at index " << foundIndex);
+                int isCustomIrOff = state.getProperty("customIrOff", false);
+                if (isCustomIrOff) {
+                    userIRDropdown.setSelectedId(userIRDropdown.getNumItems());
+                }
+                else {
+                    userIRDropdown.setSelectedId(foundIndex + 1);
+                }
             } else {
                 DBG("Custom IR not found: " << customIRPath);
             }
@@ -697,15 +703,12 @@ void EqAudioProcessor::restoreIRFromState()
             int customOpt = state.getProperty("customIROption", 0);
             setIRName(irDropdown.getNumItems(), customOpt);
         }
-        // Reset factory IR dropdown to "Off"
-        irDropdown.setSelectedId(irDropdown.getNumItems(), juce::dontSendNotification);
     } else {
         // Factory IR was selected - set dropdown selection and load IR
         int factoryIndex = valueTreeState.getRawParameterValue("ir selection")->load();
         irDropdown.setSelectedId(factoryIndex + 1, juce::dontSendNotification);
         getFactoryIR(factoryIndex);
         DBG("Restored factory IR index: " << factoryIndex);
-        // Reset custom IR dropdown to "Off"
         userIRDropdown.setSelectedId(userIRDropdown.getNumItems(), juce::dontSendNotification);
     }
 }
@@ -823,7 +826,7 @@ void EqAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
 
 void EqAudioProcessor::resampleFactoryIRs(double targetSr)
 {
-    return;
+//    return;
     for (int i = 0; i < Constants::NUM_IRS; i++) {
         const auto irData = originalFactoryIRs[i]->GetData();
         factoryIRs[i] = std::make_unique<dsp::ImpulseResponse>(irData, targetSr);
@@ -832,7 +835,7 @@ void EqAudioProcessor::resampleFactoryIRs(double targetSr)
 
 void EqAudioProcessor::resampleUserIRs(double targetSr)
 {
-    return;
+//    return;
     for (int i = 0; i < userIRs.size(); i++) {
         const auto irData = originalUserIRs[i]->GetData();
         userIRs[i] = std::make_unique<dsp::ImpulseResponse>(irData, targetSr);
@@ -879,7 +882,7 @@ void EqAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::Mid
     
     for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
         buffer.clear (i, 0, buffer.getNumSamples());
-    return;
+//    return;
     if (licenseActivated.load() && !licenseVisibility.load()) {
         float* chL = buffer.getWritePointer(0);
         float* chR = nullptr;
@@ -1218,9 +1221,6 @@ void EqAudioProcessor::getStateInformation (juce::MemoryBlock& destData)
     // DO NOT create properties here - they're created when buttons are clicked
     // This allows GUI constructor to detect a new instance by checking if properties exist
 
-    DBG("SAVING lastBottomButton: " << lastBottomButton);
-    DBG("SAVING is eq 1: " << valueTreeState.getRawParameterValue("is eq 1")->load());
-    DBG("SAVING is fx 1: " << valueTreeState.getRawParameterValue("is fx 1")->load());
     DBG("Saved state after:\n");
     for (int i = 0; i < state.getNumProperties(); ++i)
     {
@@ -1246,7 +1246,6 @@ void EqAudioProcessor::setStateInformation (const void* data, int sizeInBytes)
     if (xmlState.get() != nullptr) {
         if (xmlState->hasTagName (valueTreeState.state.getType())) {
             juce::ValueTree state = juce::ValueTree::fromXml (*xmlState);
-            bool isStandalone = juce::JUCEApplicationBase::isStandaloneApp();
             DBG("from XML: \n");
             for (int i = 0; i < state.getNumProperties(); ++i)
             {
@@ -1254,20 +1253,8 @@ void EqAudioProcessor::setStateInformation (const void* data, int sizeInBytes)
                 auto propertyValue = state[propertyName].toString();
                 DBG(propertyName + ": " + propertyValue << "\n");
             }
-            // Detect first load BEFORE replacing state
-            // Check if the incoming XML state is empty (first instance)
-            bool isFirstLoad = !state.hasProperty("lastBottomButton") &&
-                               !state.hasProperty("lastTouchedDropdown");
 
             valueTreeState.replaceState (state);
-
-            if (isFirstLoad) {
-                DBG("First load detected in setStateInformation - loading default preset: " << Constants::factoryPresets[0]);
-                presetManager->loadPreset(Constants::factoryPresets[0]);
-                // After loading preset, re-get the state as preset loading updates it
-                state = valueTreeState.state;
-            }
-
             presetPath = state.getProperty("presetPath", juce::String());
             if (!state.hasProperty("lastTouchedDropdown")) {
                 lastTouchedDropdown = &irDropdown;
@@ -1282,19 +1269,23 @@ void EqAudioProcessor::setStateInformation (const void* data, int sizeInBytes)
             else {
                 lastPresetButton = state.getProperty("lastPresetButton");
             }
+            // Write back to state tree to trigger ValueTree listeners (updates GUI)
+            state.setProperty("lastPresetButton", lastPresetButton, nullptr);
+
             if (!state.hasProperty("lastBottomButton")) {
                 lastBottomButton = 0;
             }
             else {
                 lastBottomButton = state.getProperty("lastBottomButton");
             }
+            // Write back to state tree to trigger ValueTree listeners (updates GUI)
+            state.setProperty("lastBottomButton", lastBottomButton, nullptr);
             if(!state.hasProperty("presetVisibility")) {
                 presetVisibility = false;
             }
             else {
                 presetVisibility = state.getProperty("presetVisibility");
             }
-            // NOTE: currentMainKnobID is no longer restored - it's derived in ButtonsAndKnobs::restoreButtonState()
             DBG("RESTORED lastBottomButton: " << lastBottomButton);
             DBG("RESTORED is eq 1: " << valueTreeState.getRawParameterValue("is eq 1")->load());
             DBG("RESTORED is fx 1: " << valueTreeState.getRawParameterValue("is fx 1")->load());

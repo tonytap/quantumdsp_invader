@@ -43,10 +43,7 @@
 //}
 
 
-class EqAudioProcessorEditor  : public juce::AudioProcessorEditor,
-                                  public juce::Timer,
-                                  public juce::Button::Listener,
-                                  public juce::ValueTree::Listener
+class EqAudioProcessorEditor  : public juce::AudioProcessorEditor, public juce::Timer, public juce::Button::Listener, public juce::ValueTree::Listener
 {
 public:
     EqAudioProcessorEditor (EqAudioProcessor&, juce::AudioProcessorValueTreeState&);
