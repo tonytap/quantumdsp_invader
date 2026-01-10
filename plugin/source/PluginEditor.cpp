@@ -73,11 +73,40 @@ EqAudioProcessorEditor::EqAudioProcessorEditor (EqAudioProcessor& p, juce::Audio
     bool stateIsEmpty = !state.hasProperty("lastBottomButton") &&
                         !state.hasProperty("lastTouchedDropdown");
 
+    DBG("=== GUI CONSTRUCTOR ===");
+    DBG("hasProperty(lastBottomButton): " + juce::String(state.hasProperty("lastBottomButton") ? "true" : "false"));
+    DBG("hasProperty(lastTouchedDropdown): " + juce::String(state.hasProperty("lastTouchedDropdown") ? "true" : "false"));
+    DBG("hasProperty(presetName): " + juce::String(state.hasProperty("presetName") ? "true" : "false"));
+    DBG("stateIsEmpty: " + juce::String(stateIsEmpty ? "true" : "false"));
+    DBG("hasLoadedState: " + juce::String(audioProcessor.hasLoadedState ? "true" : "false"));
+    DBG("All state properties:");
+    for (int i = 0; i < state.getNumProperties(); ++i) {
+        DBG("  " + state.getPropertyName(i).toString() + ": " + state[state.getPropertyName(i)].toString());
+    }
+
     if (stateIsEmpty) {
-        DBG("Empty state detected in GUI - loading default preset via combo box");
-        // Use combo box to load preset - this triggers the complete flow including
-        // extraPresetConfig() which handles IR restoration, button updates, etc.
-        cc.presetPanel.presetList.setSelectedItemIndex(0, juce::sendNotificationSync);
+        DBG("Empty state detected in GUI - loading default preset by simulating P1 click");
+        // Simulate P1 button click which will trigger preset load and set all button states
+        if (cc.topButtons.size() > 0) {
+            cc.topButtons[0]->triggerClick();
+        }
+    } else {
+        // State exists - initialize buttons from saved state
+        cc.restoreButtonState();
+
+        // Initialize preset buttons
+        int presetButtonIndex = audioProcessor.lastPresetButton;
+        CustomButton* savedPresetButton = cc.topButtons[presetButtonIndex];
+        savedPresetButton->currentState = State::On;
+        savedPresetButton->repaint();
+        valueTreeState.getParameterAsValue(savedPresetButton->stateID).setValue(true);
+
+        // Turn off other preset buttons
+        for (CustomButton* button : cc.topButtons) {
+            if (button != savedPresetButton) {
+                button->turnOff();
+            }
+        }
     }
 
     setSize (sizePortion*fullWidth, sizePortion*fullHeight);

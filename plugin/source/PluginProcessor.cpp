@@ -656,6 +656,55 @@ int EqAudioProcessor::findUserIRIndexByPath(const juce::String& path)
     return -1;  // Not found
 }
 
+void EqAudioProcessor::restoreIRFromState()
+{
+    // Single source of truth for IR restoration logic
+    // Called by both setStateInformation() and extraPresetConfig()
+
+    auto state = valueTreeState.state;
+
+    // ALWAYS load custom IRs if path exists (populate dropdown)
+    juce::String customIRPath = state.getProperty("customIR", "");
+    if (customIRPath.isNotEmpty()) {
+        juce::StringArray customIRs = loadUserIRsFromDirectory(customIRPath);
+        resampleUserIRs(projectSr);
+        updateAllIRs(customIRs);
+        DBG("Loaded custom IRs from path: " << customIRPath);
+    }
+
+    // Check lastTouchedDropdown to know which IR type is currently selected
+    bool irDropdownState = state.getProperty("lastTouchedDropdown", true);
+    lastTouchedDropdown = irDropdownState ? &irDropdown : &userIRDropdown;
+
+    if (!irDropdownState) {
+        // Custom IR was selected - set dropdown selection and load IR
+        if (customIRPath.isNotEmpty()) {
+            int foundIndex = findUserIRIndexByPath(customIRPath);
+            if (foundIndex >= 0) {
+                userIRDropdown.setSelectedId(foundIndex + 1, juce::dontSendNotification);
+                setCustomIR(foundIndex);
+                DBG("Restored custom IR selection: " << customIRPath << " at index " << foundIndex);
+            } else {
+                DBG("Custom IR not found: " << customIRPath);
+            }
+        } else {
+            // Fallback to index-based (old presets)
+            int customOpt = state.getProperty("customIROption", 0);
+            setIRName(irDropdown.getNumItems(), customOpt);
+        }
+        // Reset factory IR dropdown to "Off"
+        irDropdown.setSelectedId(irDropdown.getNumItems(), juce::dontSendNotification);
+    } else {
+        // Factory IR was selected - set dropdown selection and load IR
+        int factoryIndex = valueTreeState.getRawParameterValue("ir selection")->load();
+        irDropdown.setSelectedId(factoryIndex + 1, juce::dontSendNotification);
+        getFactoryIR(factoryIndex);
+        DBG("Restored factory IR index: " << factoryIndex);
+        // Reset custom IR dropdown to "Off"
+        userIRDropdown.setSelectedId(userIRDropdown.getNumItems(), juce::dontSendNotification);
+    }
+}
+
 //==============================================================================
 const juce::String EqAudioProcessor::getName() const
 {
@@ -1160,13 +1209,9 @@ void EqAudioProcessor::getStateInformation (juce::MemoryBlock& destData)
     bool irDropdownState = lastTouchedDropdown == &irDropdown;
     state.setProperty("lastTouchedDropdown", irDropdownState, nullptr);
 
-    // Note: customIR path is already saved when user browses for a file
-    // (see ButtonsAndKnobs.h:736). We just need to clear it when factory IR is selected.
-    if (irDropdownState) {
-        // Factory IR selected - clear custom IR path so we know to use factory on load
-        state.setProperty("customIR", "", nullptr);
-    }
-    // If custom IR is selected, the path is already in "customIR" property from file browser
+    // Note: customIR path is saved when user browses for a file (see ButtonsAndKnobs.h:635, 724)
+    // We preserve this path even when factory IR is selected, so we can repopulate
+    // the custom IR dropdown when reopening. lastTouchedDropdown determines which IR is active.
 
     state.setProperty("presetPath", presetPath, nullptr);
     // NOTE: currentMainKnobID is no longer saved - it's derived from lastBottomButton + boolean parameters
@@ -1198,6 +1243,10 @@ void EqAudioProcessor::setStateInformation (const void* data, int sizeInBytes)
 {
     // You should use this method to restore your parameters from this memory block,
     // whose contents will have been created by the getStateInformation() call.
+    DBG("=== setStateInformation CALLED ===");
+    DBG("sizeInBytes: " + juce::String(sizeInBytes));
+    DBG("isStandaloneApp: " + juce::String(juce::JUCEApplicationBase::isStandaloneApp() ? "true" : "false"));
+
     hasLoadedState = true;  // Mark that we loaded state from settings file
     std::unique_ptr<juce::XmlElement> xmlState (getXmlFromBinary (data, sizeInBytes));
 
@@ -1315,37 +1364,8 @@ void EqAudioProcessor::setStateInformation (const void* data, int sizeInBytes)
             // Resample factory IRs
             resampleFactoryIRs(projectSr);
 
-            // Order-independent IR restoration (same logic as extraPresetConfig)
-            // Check lastTouchedDropdown to know which IR type was selected
-            bool irDropdownState = state.getProperty("lastTouchedDropdown");
-
-            if (!irDropdownState) {
-                // Custom IR was selected
-                juce::String customIRPath = state.getProperty("customIR", "");
-                if (customIRPath.isNotEmpty()) {
-                    // Path-based restoration
-                    juce::StringArray customIRs = loadUserIRsFromDirectory(customIRPath);
-                    resampleUserIRs(projectSr);
-                    updateAllIRs(customIRs);
-
-                    int foundIndex = findUserIRIndexByPath(customIRPath);
-                    if (foundIndex >= 0) {
-                        userIRDropdown.setSelectedId(foundIndex + 1, juce::dontSendNotification);
-                        setCustomIR(foundIndex);
-                        DBG("Restored custom IR: " << customIRPath << " at index " << foundIndex);
-                    } else {
-                        DBG("Custom IR not found: " << customIRPath);
-                    }
-                } else {
-                    DBG("No custom IR path found");
-                }
-            } else {
-                // Factory IR was selected
-                int factoryIndex = valueTreeState.getRawParameterValue("ir selection")->load();
-                irDropdown.setSelectedId(factoryIndex + 1, juce::dontSendNotification);
-                getFactoryIR(factoryIndex);
-                DBG("Restored factory IR index: " << factoryIndex);
-            }
+            // Restore IR state using unified helper method
+            restoreIRFromState();
         }
     }
     else {

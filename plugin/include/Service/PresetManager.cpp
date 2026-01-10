@@ -67,26 +67,26 @@ namespace Service
 		currentPreset.setValue("");
 	}
 
-	void PresetManager::loadPreset(const String& presetName)
-	{
-		if (presetName.isEmpty())
-			return;
+    void PresetManager::loadPreset(const String& presetName)
+    {
+        if (presetName.isEmpty())
+            return;
 
-		const auto presetFile = defaultDirectory.getChildFile(presetName + "." + extension);
-		if (!presetFile.existsAsFile())
-		{
-			DBG("Preset file " + presetFile.getFullPathName() + " does not exist");
-			jassertfalse;
-			return;
-		}
-		// presetFile (XML) -> (ValueTree)
-		XmlDocument xmlDocument{ presetFile };
+        const auto presetFile = defaultDirectory.getChildFile(presetName + "." + extension);
+        if (!presetFile.existsAsFile())
+        {
+            DBG("Preset file " + presetFile.getFullPathName() + " does not exist");
+            jassertfalse;
+            return;
+        }
+        // presetFile (XML) -> (ValueTree)
+        XmlDocument xmlDocument{ presetFile };
         auto docElem = *xmlDocument.getDocumentElement();
-		const auto valueTreeToLoad = ValueTree::fromXml(docElem);
+        const auto valueTreeToLoad = ValueTree::fromXml(docElem);
 
-		valueTreeState.replaceState(valueTreeToLoad);
-		currentPreset.setValue(presetName);
-	}
+        valueTreeState.replaceState(valueTreeToLoad);
+        currentPreset.setValue(presetName);
+    }
 
 	int PresetManager::loadNextPreset()
 	{

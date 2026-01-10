@@ -415,34 +415,11 @@ public:
         parameterLabel.setJustificationType(juce::Justification::centredBottom);
         parameterValueLabel.setJustificationType(juce::Justification::centred);
 
-        // Only restore button state if there's actual state to restore
-        // If state is empty (first launch), we'll load a preset instead
-        auto state = valueTreeState.state;
-        bool stateIsEmpty = !state.hasProperty("lastBottomButton") &&
-                            !state.hasProperty("lastTouchedDropdown");
-
-        if (!stateIsEmpty) {
-            // Restore button state WITHOUT triggering user interaction logic
-            // This runs when reopening to ensure consistent state
-
-            // Restore bottom button (main controls)
-            restoreButtonState();
-
-            // Restore preset button (visual state only, no preset loading)
-            int presetButtonIndex = audioProcessor.lastPresetButton;
-            CustomButton* savedPresetButton = topButtons[presetButtonIndex];
-            savedPresetButton->currentState = State::On;
-            savedPresetButton->repaint();
-            valueTreeState.getParameterAsValue(savedPresetButton->stateID).setValue(true);
-
-            // Turn off other preset buttons
-            for (CustomButton* button : topButtons) {
-                if (button != savedPresetButton) {
-                    button->turnOff();
-                }
-            }
-        }
-        // If stateIsEmpty, PluginEditor will load default preset which handles GUI setup
+        // Note: Button state restoration happens in PluginEditor after potential preset loading
+        // This ensures buttons are initialized with correct state whether loading from:
+        // 1. Saved session state
+        // 2. Default preset (first launch)
+        // 3. VST3 project restore
 
         irDropdown.setLookAndFeel(&customLookAndFeel1);
         userIRDropdown.setLookAndFeel(&customLookAndFeel1);
@@ -607,13 +584,13 @@ public:
     juce::Label outLabel;
     double sizePortion = 1.0;
     Gui::PresetPanel presetPanel;
+    juce::Array<CustomButton*> topButtons;
 private:
     CustomButton fxButton, gateButton, ampGainButton, eqButton, irButton, p1Button, p2Button, p3Button, p4Button, p5Button;
     CustomRotarySlider mainKnob, inGainKnob, outGainKnob;
     juce::AudioProcessorValueTreeState& valueTreeState;
     EqAudioProcessor& audioProcessor;
     juce::Array<CustomButton*> buttons;
-    juce::Array<CustomButton*> topButtons;
     std::unique_ptr<juce::FileChooser> irChooser;
     bool isStandalone = juce::JUCEApplicationBase::isStandaloneApp();
     CustomLookAndFeel customLookAndFeel;

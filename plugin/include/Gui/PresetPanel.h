@@ -204,40 +204,13 @@ namespace Gui
             auto state = audioProcessor.valueTreeState.state;
 
             // === IR Restoration ===
-            // Order-independent: Check lastTouchedDropdown to know which IR type was selected
-            bool irDropdownState = state.getProperty("lastTouchedDropdown", true);
-            audioProcessor.lastTouchedDropdown = irDropdownState ? &(audioProcessor.irDropdown) : &(audioProcessor.userIRDropdown);
-
-            if (!irDropdownState) {
-                // Custom IR was selected
-                juce::String customIRPath = state.getProperty("customIR", "");
-                if (customIRPath.isNotEmpty()) {
-                    // Path-based restoration (project save)
-                    juce::StringArray customIRs = audioProcessor.loadUserIRsFromDirectory(customIRPath);
-                    audioProcessor.resampleUserIRs(audioProcessor.projectSr);
-                    audioProcessor.updateAllIRs(customIRs);
-
-                    int foundIndex = audioProcessor.findUserIRIndexByPath(customIRPath);
-                    if (foundIndex >= 0) {
-                        audioProcessor.userIRDropdown.setSelectedId(foundIndex + 1, juce::dontSendNotification);
-                        audioProcessor.setCustomIR(foundIndex);
-                    }
-                } else {
-                    // Fallback to index-based (old presets)
-                    int customOpt = state.getProperty("customIROption", 0);
-                    audioProcessor.setIRName(audioProcessor.irDropdown.getNumItems(), customOpt);
-                }
-            } else {
-                // Factory IR was selected - use parameter
-                int factoryIndex = audioProcessor.valueTreeState.getRawParameterValue("ir selection")->load();
-                audioProcessor.irDropdown.setSelectedId(factoryIndex + 1, juce::dontSendNotification);
-                audioProcessor.getFactoryIR(factoryIndex);
-            }
+            // Use unified helper method for IR restoration
+            audioProcessor.restoreIRFromState();
 
             // === Button State Restoration ===
             // Read from loaded state, don't hardcode
-            audioProcessor.lastBottomButton = state.getProperty("lastBottomButton", 0);
-            audioProcessor.lastPresetButton = state.getProperty("lastPresetButton", 0);
+            audioProcessor.lastBottomButton = 0;
+//            audioProcessor.lastPresetButton = state.getProperty("lastPresetButton", 0);
             audioProcessor.restoreEditorButtonState();
         }
         
@@ -332,6 +305,7 @@ namespace Gui
                     audioProcessor.p5n = name;
                 }
             }
+            // After loadPreset(), extraPresetConfig() handles IR loading and button init
             extraPresetConfig();
             valueLabel->setText("", juce::dontSendNotification);
             label->setText(presetName, juce::dontSendNotification);
