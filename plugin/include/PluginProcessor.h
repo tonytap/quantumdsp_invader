@@ -81,11 +81,11 @@ public:
 
     std::atomic<bool> licenseVisibility {false};
 
-    PeakNotch PN150;
-    PeakNotch PN800;
-    PeakNotch PN4k;
+    PeakNotch EQ1_1;
+    PeakNotch EQ1_2;
+    PeakNotch EQ2_1;
     PeakNotch GlobalEQ;
-    Shelf HS5k;
+    Shelf EQ2_2;
     
     std::atomic<float>* eq1Parameter  = nullptr;
     std::atomic<float>* eq2Parameter  = nullptr;

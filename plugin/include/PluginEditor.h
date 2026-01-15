@@ -71,6 +71,8 @@ public:
     }
     void buttonClicked(juce::Button *button) override;
     CentralComponents cc;
+    void setProportion();
+    double sizePortion = 1.0;
 private:
     void showLicensePage();
     void hideLicensePage();
@@ -118,7 +120,6 @@ private:
         }
     };
     NoOutlineLookAndFeel noOutlineLookAndFeel;
-    double sizePortion = 1.0;
     void resizeButtonClicked() {
         return;
     }

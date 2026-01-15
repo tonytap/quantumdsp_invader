@@ -1,0 +1,35 @@
+<?xml version='1.0' encoding='utf-8'?>
+<MLGuitarAmp version="1.0.0" lastTouchedDropdown="1">
+  <PARAM id="amp gain" value="5.5"/>
+  <PARAM id="amp smooth" value="0"/>
+  <PARAM id="boost gain" value="1.0"/>
+  <PARAM id="custom ir selection" value="1.0"/>
+  <PARAM id="eq state" value="0"/>
+  <PARAM id="gain state" value="0"/>
+  <PARAM id="gate state" value="0"/>
+  <PARAM id="input gain" value="2.980232238769531e-7"/>
+  <PARAM id="ir selection" value="11"/>
+  <PARAM id="ir visibility" value="0.0"/>
+  <PARAM id="is amp 1" value="1"/>
+  <PARAM id="is boost" value="0.0"/>
+  <PARAM id="model id" value="0.0"/>
+  <PARAM id="noise gate" value="-78.69999694824219"/>
+  <PARAM id="output gain" value="0.4000003039836884"/>
+  <PARAM id="p1 state" value="1"/>
+  <PARAM id="p2 state" value="0"/>
+  <PARAM id="p3 state" value="0"/>
+  <PARAM id="p4 state" value="0"/>
+  <PARAM id="p5 state" value="0"/>
+  <PARAM id="eq2" value="-1.400000095367432"/>
+  <PARAM id="reverb" value="0.239999994635582"/>
+  <PARAM id="reverb state" value="1"/>
+  <PARAM id="eq1" value="4.200000286102295"/>
+  <PARAM id="back state"/>
+  <PARAM id="delay feedback"/>
+  <PARAM id="delay mix" value="0.1700000017881393"/>
+  <PARAM id="delay state"/>
+  <PARAM id="delay timing"/>
+  <PARAM id="fx state"/>
+  <PARAM id="is eq 1"/>
+  <PARAM id="is fx 1" value="1"/>
+</MLGuitarAmp>

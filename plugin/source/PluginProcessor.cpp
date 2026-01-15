@@ -23,11 +23,11 @@ EqAudioProcessor::EqAudioProcessor()
                      #endif
                        ),
 valueTreeState(*this, nullptr, "MLGuitarAmp", Utility::ParameterHelper::createParameterLayout()),
-PN150(48000.0, 120),
-PN800(48000.0, 800),
-PN4k(48000.0, 2000),
-HS5k(48000.0, 5000),
-GlobalEQ(48000.0, 5200),
+EQ1_1(48000.0, Constants::fc_eq1_1),
+EQ1_2(48000.0, Constants::fc_eq1_2),
+EQ2_1(48000.0, Constants::fc_eq2_1),
+EQ2_2(48000.0, Constants::fc_eq2_2),
+GlobalEQ(48000.0, Constants::fc_globalEQ),
 mResampler1(48000.0),
 mResampler2(48000.0),
 irResampler(48000.0)
@@ -41,7 +41,7 @@ irResampler(48000.0)
     p5n = Constants::factoryPresets[4];
 
     valueTreeState.state.setProperty(Service::PresetManager::presetNameProperty, "", nullptr);
-    valueTreeState.state.setProperty("version", "1.2.0", nullptr);
+    valueTreeState.state.setProperty("version", Constants::versionNum, nullptr);
     valueTreeState.state.setProperty("presetPath", "", nullptr);
     presetManager = std::make_unique<Service::PresetManager>(valueTreeState);
     if (models.empty()) {
@@ -73,7 +73,7 @@ irResampler(48000.0)
     userIRDropdown.setTextWhenNothingSelected("Custom IRs");
     irDropdown.setTextWhenNothingSelected("Factory IRs");
     populateIRDropdown();
-    for (int i = 0; i < Constants::NUM_FACTORY_PRESETS; i++) {
+    for (int i = 1; i <= Constants::NUM_FACTORY_PRESETS; i++) {
         loadFactoryPresets(i);
     }
     reverbRp = 0;
@@ -87,7 +87,7 @@ irResampler(48000.0)
     eq2Parameter = valueTreeState.getRawParameterValue("eq2");
 
     // Initialize LicenseSpring
-    AppConfig appConfig( "Invader", "1.2.0" );
+    AppConfig appConfig( Constants::productName, Constants::versionNum );
     auto pConfiguration = appConfig.createLicenseSpringConfig();
     licenseManager = LicenseSpring::LicenseManager::create( pConfiguration );
     auto license = licenseManager->getCurrentLicense();
@@ -161,81 +161,10 @@ std::tuple<std::unique_ptr<juce::XmlElement>, juce::File> EqAudioProcessor::writ
 }
 
 void EqAudioProcessor::loadFactoryPresets(int i) {
-     juce::String name = Constants::factoryPresets[i];
-     const void* data;
+     juce::String name = Constants::factoryPresets[i-1];
      int size;
-     if (i == 0) {
-         data = BinaryData::_1__The_Rocker_preset;
-         size = BinaryData::_1__The_Rocker_presetSize;
-     }
-     else if (i == 1) {
-         data = BinaryData::_2__Capt__Crunch_preset;
-         size = BinaryData::_2__Capt__Crunch_presetSize;
-     }
-     else if (i == 2) {
-         data = BinaryData::_3__EhISee_preset;
-         size = BinaryData::_3__EhISee_presetSize;
-     }
-     else if (i == 3) {
-         data = BinaryData::_4__Soaring_Lead_preset;
-         size = BinaryData::_4__Soaring_Lead_presetSize;
-     }
-     else if (i == 4) {
-         data = BinaryData::_5__Cleaning_Up_preset;
-         size = BinaryData::_5__Cleaning_Up_presetSize;
-     }
-     else if (i == 5) {
-         data = BinaryData::_6__Sweet_Tea_Blues_preset;
-         size = BinaryData::_6__Sweet_Tea_Blues_presetSize;
-     }
-     else if (i == 6) {
-         data = BinaryData::_7__Rokk_preset;
-         size = BinaryData::_7__Rokk_presetSize;
-     }
-     else if (i == 7) {
-         data = BinaryData::_8__Crisp__Clear_preset;
-         size = BinaryData::_8__Crisp__Clear_presetSize;
-     }
-     else if (i == 8) {
-         data = BinaryData::_9__Modern_Singles_preset;
-         size = BinaryData::_9__Modern_Singles_presetSize;
-     }
-     else if (i == 9) {
-         data = BinaryData::_10__Modern_Rhythms_preset;
-         size = BinaryData::_10__Modern_Rhythms_presetSize;
-     }
-     else if (i == 10) {
-         data = BinaryData::_11__Anger_Management_preset;
-         size = BinaryData::_11__Anger_Management_presetSize;
-     }
-     else if (i == 11) {
-         data = BinaryData::_12__Psychedlica_preset;
-         size = BinaryData::_12__Psychedlica_presetSize;
-     }
-     else if (i == 12) {
-         data = BinaryData::_13__Flying_Solo_preset;
-         size = BinaryData::_13__Flying_Solo_presetSize;
-     }
-     else if (i == 13) {
-         data = BinaryData::_14__Texas_Blooze_preset;
-         size = BinaryData::_14__Texas_Blooze_presetSize;
-     }
-     else if (i == 14) {
-         data = BinaryData::_15__Vibin_preset;
-         size = BinaryData::_15__Vibin_presetSize;
-     }
-     else if (i == 15) {
-         data = BinaryData::_16__Dreamscape_preset;
-         size = BinaryData::_16__Dreamscape_presetSize;
-     }
-     else if (i == 16) {
-         data = BinaryData::_17__Thrasher_preset;
-         size = BinaryData::_17__Thrasher_presetSize;
-     }
-     else if (i == 17) {
-         data = BinaryData::_18__Down_Under_preset;
-         size = BinaryData::_18__Down_Under_presetSize;
-     }
+     std::string resourceName = "_"+std::to_string(i)+"_preset";
+     const void* data = BinaryData::getNamedResource(resourceName.c_str(), size);
      name += ".preset";
      if (data != nullptr && size > 0)
      {
@@ -257,7 +186,6 @@ void EqAudioProcessor::loadModel(const int amp_idx, double gainLvl, unsigned lon
     juce::String modelName = "AMP"+juce::String(amp_idx)+"-GAIN"+juce::String(gainLvl, 1)+".wav.nam";
     const void* modelData = nullptr;
     int modelSize = 0;
-
     if (modelName == "AMP1-GAIN1.0.wav.nam") {
         modelData = BinaryData::AMP1GAIN1_0_wav_nam;
         modelSize = BinaryData::AMP1GAIN1_0_wav_namSize;
@@ -413,8 +341,6 @@ void EqAudioProcessor::loadModel(const int amp_idx, double gainLvl, unsigned lon
 
     if (modelData != nullptr && modelSize > 0)
     {
-//        juce::File tempFile = writeBinaryDataToTempFile(modelData, modelSize, modelName);
-//        models[i] = nam::get_dsp(tempFile.getFullPathName().toRawUTF8());
         juce::MemoryInputStream memoryStream(modelData, modelSize, false);
 
         // Read and parse the JSON
@@ -471,100 +397,11 @@ void EqAudioProcessor::loadModel(const int amp_idx, double gainLvl, unsigned lon
 }
 
 void EqAudioProcessor::loadIR(const int i, double sampleRate) {
-//    return;
     const char* irData = nullptr;
     int irSize = 0;
-    juce::String irName;
-    if (i == 1) {
-        irData = BinaryData::Invader_1_bin;
-        irSize = BinaryData::Invader_1_binSize;
-        irName = "Invader 1";
-    }
-    else if (i == 2) {
-        irData = BinaryData::Invader_2_bin;
-        irSize = BinaryData::Invader_2_binSize;
-        irName = "Invader 2";
-    }
-    else if (i == 3) {
-        irData = BinaryData::Invader_3_bin;
-        irSize = BinaryData::Invader_3_binSize;
-        irName = "Invader 3";
-    }
-    else if (i == 4) {
-        irData = BinaryData::Invader_4_bin;
-        irSize = BinaryData::Invader_4_binSize;
-        irName = "Invader 4";
-    }
-    else if (i == 5) {
-        irData = BinaryData::Invader_5_bin;
-        irSize = BinaryData::Invader_5_binSize;
-        irName = "Invader 5";
-    }
-    else if (i == 6) {
-        irData = BinaryData::Invader_6_bin;
-        irSize = BinaryData::Invader_6_binSize;
-        irName = "Invader 6";
-    }
-    else if (i == 7) {
-        irData = BinaryData::Invader_7_bin;
-        irSize = BinaryData::Invader_7_binSize;
-        irName = "Invader 7";
-    }
-    else if (i == 8) {
-        irData = BinaryData::Invader_8_bin;
-        irSize = BinaryData::Invader_8_binSize;
-        irName = "Invader 8";
-    }
-    else if (i == 9) {
-        irData = BinaryData::Invader_9_bin;
-        irSize = BinaryData::Invader_9_binSize;
-        irName = "Invader 9";
-    }
-    else if (i == 10) {
-        irData = BinaryData::Invader_10_bin;
-        irSize = BinaryData::Invader_10_binSize;
-        irName = "Invader 10";
-    }
-    else if (i == 11) {
-        irData = BinaryData::Invader_11_bin;
-        irSize = BinaryData::Invader_11_binSize;
-        irName = "Invader 11";
-    }
-    else if (i == 12) {
-        irData = BinaryData::Invader_12_bin;
-        irSize = BinaryData::Invader_12_binSize;
-        irName = "Invader 12";
-    }
-    else if (i == 13) {
-        irData = BinaryData::Invader_13_bin;
-        irSize = BinaryData::Invader_13_binSize;
-        irName = "Invader 13";
-    }
-    else if (i == 14) {
-        irData = BinaryData::Invader_14_bin;
-        irSize = BinaryData::Invader_14_binSize;
-        irName = "Invader 14";
-    }
-    else if (i == 15) {
-        irData = BinaryData::Invader_15_bin;
-        irSize = BinaryData::Invader_15_binSize;
-        irName = "Invader 15";
-    }
-    else if (i == 16) {
-        irData = BinaryData::Invader_16_bin;
-        irSize = BinaryData::Invader_16_binSize;
-        irName = "Invader 16";
-    }
-    else if (i == 17) {
-        irData = BinaryData::Invader_17_bin;
-        irSize = BinaryData::Invader_17_binSize;
-        irName = "Invader 17";
-    }
-    else if (i == 18) {
-        irData = BinaryData::Invader_18_bin;
-        irSize = BinaryData::Invader_18_binSize;
-        irName = "Invader 18";
-    }
+    juce::String irName = juce::String(Constants::productName)+" "+juce::String(i);
+    std::string irBinaryName = std::string(Constants::productName)+"_"+std::to_string(i)+"_bin";
+    irData = BinaryData::getNamedResource(irBinaryName.c_str(), irSize);
     if (irData != nullptr && irSize > 0) {
         dsp::ImpulseResponse::IRData irInfo;
         size_t numSamples = (irSize-sizeof(double))/sizeof(float);
@@ -780,10 +617,10 @@ void EqAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
 {
     // Use this method as the place to do any pre-playback
     // initialisation that you need..
-    PN150.setSr(sampleRate);
-    PN800.setSr(sampleRate);
-    PN4k.setSr(sampleRate);
-    HS5k.setSr(sampleRate);
+    EQ1_1.setSr(sampleRate);
+    EQ1_2.setSr(sampleRate);
+    EQ2_1.setSr(sampleRate);
+    EQ2_2.setSr(sampleRate);
     float tSmooth = 0.2;
     inputGain.reset(sampleRate, tSmooth);
     outputGain.reset(sampleRate, tSmooth);
@@ -1023,16 +860,16 @@ void EqAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::Mid
                 float eq2Val = eq2Gain.getNextValue();    // -6 to +6 dB
 
                 // Apply eq1 EQ
-                PN150.setValues(eq1Val, "g");
-                float y150 = PN150.applyPN(x, channel);
-                PN800.setValues(2.0f * eq1Val, "g");
-                float y800 = PN800.applyPN(y150, channel);
+                EQ1_1.setValues(Constants::eq1_1_slope*eq1Val+Constants::eq1_1_bias, "g");
+                float y150 = EQ1_1.applyPN(x, channel);
+                EQ1_2.setValues(Constants::eq1_2_slope*eq1Val+Constants::eq1_2_bias, "g");
+                float y800 = EQ1_2.applyPN(y150, channel);
 
                 // Apply eq2 EQ
-                PN4k.setValues(2.0f * eq2Val, "g");
-                float y4k = PN4k.applyPN(y800, channel);
-                HS5k.setValues(2.0f + eq2Val, "g");
-                float y5k = HS5k.applyHS(y4k, channel);
+                EQ2_1.setValues(Constants::eq2_1_slope*eq2Val+Constants::eq2_1_bias, "g");
+                float y4k = EQ2_1.applyPN(y800, channel);
+                EQ2_2.setValues(Constants::eq2_2_slope*eq2Val+Constants::eq2_2_bias, "g");
+                float y5k = EQ2_2.applyHS(y4k, channel);
 
                 // Apply global EQ
                 float yGlobalEQ = GlobalEQ.applyPN(y5k, channel);
@@ -1121,9 +958,13 @@ void EqAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::Mid
 
                 auto *data = buffer.getWritePointer(0);
                 channelDelays[0]->process(data, buffer.getNumSamples(), delaySamples, actualDelayMix);
-                data = buffer.getWritePointer(1);
-                channelDelays[1]->FB = channelDelays[0]->FB;
-                channelDelays[1]->process(data, buffer.getNumSamples(), delaySamples, actualDelayMix);
+
+                // Only process right channel if stereo
+                if (totalNumInputChannels > 1) {
+                    data = buffer.getWritePointer(1);
+                    channelDelays[1]->FB = channelDelays[0]->FB;
+                    channelDelays[1]->process(data, buffer.getNumSamples(), delaySamples, actualDelayMix);
+                }
             }
         }
 
@@ -1325,6 +1166,11 @@ void EqAudioProcessor::setStateInformation (const void* data, int sizeInBytes)
             else {
                 sizePortion = state.getProperty("size");
             }
+            if (auto* editor = dynamic_cast<EqAudioProcessorEditor*>(getActiveEditor()))
+            {
+                editor->sizePortion = sizePortion;
+                editor->setProportion();
+            }
             setAmp();
 
             // Resample factory IRs
@@ -1400,7 +1246,7 @@ juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()
 void EqAudioProcessor::populateIRDropdown() {
     int numIRs = Constants::NUM_IRS;
     for (int i = 1; i <= numIRs; i++) {
-        juce::String irName = "Invader "+juce::String(i);
+        juce::String irName = juce::String(Constants::productName)+" "+juce::String(i);
         irDropdown.addItem(irName, i);
         facIRs.add(irName);
     }

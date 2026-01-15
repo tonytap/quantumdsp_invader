@@ -76,6 +76,16 @@ EqAudioProcessorEditor::EqAudioProcessorEditor (EqAudioProcessor& p, juce::Audio
     setSize (sizePortion*fullWidth, sizePortion*fullHeight);
 }
 
+void EqAudioProcessorEditor::setProportion() {
+    setProcessorSizePortion(sizePortion);
+    cc.sizePortion = sizePortion;
+    licenseChecker.sizePortion = sizePortion;
+    licenseChecker.updateLicenseFieldsWithResize(sizePortion);
+    setSize((int)fullWidth*sizePortion, (int)fullHeight*sizePortion);
+    resized();
+    repaint();
+}
+
 void EqAudioProcessorEditor::buttonClicked(juce::Button *button) {
     if (button == &settingsButton) {
         // Access the StandalonePluginHolder
@@ -129,13 +139,8 @@ void EqAudioProcessorEditor::buttonClicked(juce::Button *button) {
         else if (sizePortion == 0.75) {
             sizePortion = 1.0;
         }
-        setProcessorSizePortion(sizePortion);
-        cc.sizePortion = sizePortion;
-        licenseChecker.sizePortion = sizePortion;
-        licenseChecker.updateLicenseFieldsWithResize(sizePortion);
-        setSize((int)fullWidth*sizePortion, (int)fullHeight*sizePortion);
-        resized();
-        repaint();
+        valueTreeState.state.setProperty("size", sizePortion, nullptr);
+        setProportion();
         return;
     }
 }

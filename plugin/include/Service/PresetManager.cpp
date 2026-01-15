@@ -6,7 +6,7 @@ namespace Service
 	const File PresetManager::defaultDirectory{ File::getSpecialLocation(
 		File::SpecialLocationType::commonDocumentsDirectory)
 			.getChildFile("Quantum DSP")
-			.getChildFile("Invader Presets")
+			.getChildFile(juce::String(Constants::productName)+" Presets")
 	};
 	const String PresetManager::extension{ "preset" };
 	const String PresetManager::presetNameProperty{ "presetName" };
