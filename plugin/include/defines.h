@@ -33,6 +33,7 @@ namespace Constants {
     static constexpr float eq2_2_slope = 1.f;
     static constexpr float eq2_2_bias = 2.f;
     static constexpr float fc_globalEQ = 5200;
+    static constexpr float gain_globalEQ = 1.6f;
     static constexpr float fc_eq1_1 = 120;
     static constexpr float fc_eq1_2 = 800;
     static constexpr float fc_eq2_1 = 2000;

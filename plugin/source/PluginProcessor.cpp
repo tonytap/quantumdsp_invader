@@ -33,6 +33,7 @@ mResampler2(48000.0),
 irResampler(48000.0)
 #endif
 {
+    GlobalEQ.setValues(Constants::gain_globalEQ, "g");
     // Initialize preset button names with first 5 factory presets
     p1n = Constants::factoryPresets[0];
     p2n = Constants::factoryPresets[1];
