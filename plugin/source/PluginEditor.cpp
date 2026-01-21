@@ -171,7 +171,13 @@ void EqAudioProcessorEditor::paint (juce::Graphics& g)
     g.drawImageWithin(background, 0, 0, getWidth(), getHeight(), juce::RectanglePlacement::stretchToFit);
     bgLight = juce::ImageCache::getFromMemory(BinaryData::bglight_png, BinaryData::bglight_pngSize);
     g.drawImageWithin(bgLight, (getWidth()-sizePortion*bgLight.getWidth())/2, (getHeight()-sizePortion*bgLight.getHeight())/2, sizePortion*bgLight.getWidth(), sizePortion*bgLight.getHeight(), juce::RectanglePlacement::stretchToFit);
-    mainDial = juce::ImageCache::getFromMemory(BinaryData::buttonbig_png, BinaryData::buttonbig_pngSize);
+
+    // Use different main dial image when IR button is active (lastBottomButton == 3)
+    if (audioProcessor.lastBottomButton == 3) {
+        mainDial = juce::ImageCache::getFromMemory(BinaryData::buttonbigir_png, BinaryData::buttonbigir_pngSize);
+    } else {
+        mainDial = juce::ImageCache::getFromMemory(BinaryData::buttonbig_png, BinaryData::buttonbig_pngSize);
+    }
     g.drawImageWithin(mainDial, 287*sizePortion, 309.5*sizePortion, sizePortion*mainDial.getWidth(), sizePortion*mainDial.getHeight(), juce::RectanglePlacement::stretchToFit);
     inGainDial = juce::ImageCache::getFromMemory(BinaryData::rotary_png, BinaryData::rotary_pngSize);
     g.drawImageWithin(inGainDial, 131*sizePortion, 104*sizePortion, sizePortion*inGainDial.getWidth(), sizePortion*inGainDial.getHeight(), juce::RectanglePlacement::stretchToFit);

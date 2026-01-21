@@ -117,11 +117,52 @@ class CustomLookAndFeel1 : public juce::LookAndFeel_V4
 public:
     CustomLookAndFeel1()
     {
-        juce::Colour bgColour((uint8)0x28, (uint8)0x28, (uint8)0x28, (float)1.0f);
-        setColour(juce::ComboBox::backgroundColourId, bgColour);
-        setColour(juce::PopupMenu::backgroundColourId, bgColour);
-        setColour(juce::TextButton::buttonColourId, bgColour);
-        setColour(juce::ListBox::backgroundColourId, bgColour);
+        // Transparent background for IR section
+        juce::Colour transparentBg = juce::Colours::transparentBlack;
+        setColour(juce::ComboBox::backgroundColourId, transparentBg);
+        setColour(juce::TextButton::buttonColourId, transparentBg);
+
+        // Keep popup menu semi-transparent dark so items are readable
+        juce::Colour popupBg((uint8)0x28, (uint8)0x28, (uint8)0x28, (float)0.95f);
+        setColour(juce::PopupMenu::backgroundColourId, popupBg);
+        setColour(juce::ListBox::backgroundColourId, popupBg);
+    }
+
+    // Override to draw transparent combo box with outline
+    void drawComboBox(juce::Graphics& g, int width, int height, bool isButtonDown,
+                     int buttonX, int buttonY, int buttonW, int buttonH,
+                     juce::ComboBox& box) override
+    {
+        // Draw transparent background
+        g.setColour(juce::Colours::transparentBlack);
+        g.fillRoundedRectangle(0, 0, width, height, 3.0f);
+
+        // Draw white outline
+        g.setColour(juce::Colours::white.withAlpha(0.5f));
+        g.drawRoundedRectangle(0, 0, width, height, 3.0f, 1.0f);
+
+        // Draw arrow
+        juce::Path arrow;
+        arrow.addTriangle(buttonX + buttonW * 0.3f, buttonY + buttonH * 0.4f,
+                         buttonX + buttonW * 0.7f, buttonY + buttonH * 0.4f,
+                         buttonX + buttonW * 0.5f, buttonY + buttonH * 0.6f);
+        g.setColour(box.findColour(juce::ComboBox::arrowColourId));
+        g.fillPath(arrow);
+    }
+
+    // Override to draw transparent button background
+    void drawButtonBackground(juce::Graphics& g, juce::Button& button, const juce::Colour& backgroundColour,
+                            bool isMouseOverButton, bool isButtonDown) override
+    {
+        auto bounds = button.getLocalBounds().toFloat();
+
+        // Draw transparent background
+        g.setColour(juce::Colours::transparentBlack);
+        g.fillRoundedRectangle(bounds, 3.0f);
+
+        // Draw white outline
+        g.setColour(juce::Colours::white.withAlpha(isMouseOverButton ? 0.7f : 0.5f));
+        g.drawRoundedRectangle(bounds, 3.0f, 1.0f);
     }
     // Override to set the combo box item text font
     juce::Font getComboBoxFont(juce::ComboBox& comboBox) override
@@ -400,8 +441,11 @@ public:
         prevIRButton.setLookAndFeel(&customLookAndFeel1);
         nextIRButton.setLookAndFeel(&customLookAndFeel1);
         customIRButton.setLookAndFeel(&customLookAndFeel1);
-        juce::Colour bgColour((uint8)0x28, (uint8)0x28, (uint8)0x28, (float)1.0f);
-        irBackground.setColour(juce::TextEditor::backgroundColourId, bgColour);  // Set background color
+
+        // Match settings page background color
+        juce::Colour bgColour((uint8)0x05, (uint8)0x05, (uint8)0x05, (float)1.0f);
+        irBackground.setColour(juce::TextEditor::backgroundColourId, bgColour);
+        irBackground.setColour(juce::TextEditor::outlineColourId, juce::Colours::transparentBlack);
         addAndMakeVisible(irBackground);
         addAndMakeVisible(presetPanel);
         makeIRVisible(false);
@@ -945,16 +989,18 @@ private:
         fxButton.setBoundsRelative(662.5/980.0, 747.5/980.0, (double)fxButton.getWidth()/width, (double)fxButton.getHeight()/height);
         double irWP = 0.14;
         double irHP = 30.0/980.0;
-        double irX = 549.5/980.0+(double)gateButton.getWidth()/width/2-0.11;
-        irBackground.setBoundsRelative(irX, 0.62, 0.23, 0.13);
-        prevIRButton.setBoundsRelative(irX+0.01, 0.63, 0.03, irHP);
+        // Center IR section horizontally and position just below "Invader 9" text
+        double irX = 0.385;  // Centered (parameterLabel is at 0.4-0.6)
+        double irStartY = 0.505;  // Just below parameterLabel (which ends at 0.51)
+        irBackground.setBoundsRelative(irX, irStartY, 0.23, 0.13);
+        prevIRButton.setBoundsRelative(irX+0.01, irStartY+0.01, 0.03, irHP);
         prevIRButton.setAlwaysOnTop(true);
-        nextIRButton.setBoundsRelative(irX+0.045+irWP+0.005, 0.63, 0.03, irHP);
+        nextIRButton.setBoundsRelative(irX+0.045+irWP+0.005, irStartY+0.01, 0.03, irHP);
         nextIRButton.setAlwaysOnTop(true);
-        irDropdown.setBoundsRelative(irX+0.045, 0.63, irWP, irHP);
-        userIRDropdown.setBoundsRelative(irX+0.045, 0.67, irWP, irHP);
+        irDropdown.setBoundsRelative(irX+0.045, irStartY+0.01, irWP, irHP);
+        userIRDropdown.setBoundsRelative(irX+0.045, irStartY+0.05, irWP, irHP);
         userIRDropdown.setAlwaysOnTop(true);
-        customIRButton.setBoundsRelative(irX+0.045, 0.71, irWP, irHP);
+        customIRButton.setBoundsRelative(irX+0.045, irStartY+0.09, irWP, irHP);
         customIRButton.setAlwaysOnTop(true);
         irDropdown.setAlwaysOnTop(true);
         irDropdown.repaint();
