@@ -4,6 +4,7 @@
 #include "BinaryData.h"
 #include "../defines.h"
 #include "Gui/PresetPanel.h"
+#include "Gui/MultiColumnComboBox.h"
 #include <juce_audio_devices/juce_audio_devices.h>
 #include <juce_audio_processors/juce_audio_processors.h>
 #include <juce_core/juce_core.h>
