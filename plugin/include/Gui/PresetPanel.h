@@ -13,10 +13,9 @@ namespace Gui
     public:
         CustomLookAndFeel()
         {
-            juce::Colour bgColour((uint8)0x28, (uint8)0x28, (uint8)0x28, (float)1.0f);
-            setColour(juce::ComboBox::backgroundColourId, bgColour);
-            setColour(juce::PopupMenu::backgroundColourId, bgColour);
-            setColour(juce::TextButton::buttonColourId, bgColour);
+            setColour(juce::ComboBox::backgroundColourId, Constants::darkBackgroundColour);
+            setColour(juce::PopupMenu::backgroundColourId, Constants::darkBackgroundColour);
+            setColour(juce::TextButton::buttonColourId, Constants::darkBackgroundColour);
         }
         // Override to set the combo box item text font
         juce::Font getComboBoxFont(juce::ComboBox& comboBox) override
@@ -119,8 +118,7 @@ namespace Gui
             nextPresetButton.setLookAndFeel(&customLookAndFeel);
             label = lbl;
             valueLabel = valLbl;
-            juce::Colour bgColour((uint8)0x28, (uint8)0x28, (uint8)0x28, (float)1.0f);
-            presetBackground.setColour(juce::TextEditor::backgroundColourId, bgColour);  // Set background color
+            presetBackground.setColour(juce::TextEditor::backgroundColourId, Constants::darkBackgroundColour);  // Set background color
             addAndMakeVisible(presetBackground);
 		}
 

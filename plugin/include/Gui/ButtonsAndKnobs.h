@@ -122,10 +122,9 @@ public:
         setColour(juce::ComboBox::backgroundColourId, transparentBg);
         setColour(juce::TextButton::buttonColourId, transparentBg);
 
-        // Keep popup menu semi-transparent dark so items are readable
-        juce::Colour popupBg((uint8)0x28, (uint8)0x28, (uint8)0x28, (float)0.95f);
-        setColour(juce::PopupMenu::backgroundColourId, popupBg);
-        setColour(juce::ListBox::backgroundColourId, popupBg);
+        // Match settings page background color for dropdown menus
+        setColour(juce::PopupMenu::backgroundColourId, Constants::darkBackgroundColour);
+        setColour(juce::ListBox::backgroundColourId, Constants::darkBackgroundColour);
     }
 
     // Override to draw transparent combo box with outline
@@ -442,11 +441,10 @@ public:
         nextIRButton.setLookAndFeel(&customLookAndFeel1);
         customIRButton.setLookAndFeel(&customLookAndFeel1);
 
-        // Match settings page background color
-        juce::Colour bgColour((uint8)0x05, (uint8)0x05, (uint8)0x05, (float)1.0f);
-        irBackground.setColour(juce::TextEditor::backgroundColourId, bgColour);
+        // Make IR background not visible (transparent)
+        irBackground.setColour(juce::TextEditor::backgroundColourId, juce::Colours::transparentBlack);
         irBackground.setColour(juce::TextEditor::outlineColourId, juce::Colours::transparentBlack);
-        addAndMakeVisible(irBackground);
+//        addAndMakeVisible(irBackground);
         addAndMakeVisible(presetPanel);
         makeIRVisible(false);
         makePresetPanelVisible(false);
@@ -950,6 +948,15 @@ private:
                 valueTreeState.state.setProperty("lastBottomButton", audioProcessor.lastBottomButton, nullptr);
             }
         }
+
+        // Reposition labels based on IR button state (after loop completes)
+        if (audioProcessor.lastBottomButton == 3) {
+            parameterLabel.setBoundsRelative(0.4, 0.43, 0.2, 0.06);
+            parameterValueLabel.setBoundsRelative(0.4, 0.485, 0.2, 0.04);
+        } else {
+            parameterLabel.setBoundsRelative(0.4, 0.45, 0.2, 0.06);
+            parameterValueLabel.setBoundsRelative(0.4, 0.505, 0.2, 0.04);
+        }
     }
     
     void makeIRVisible(bool visibility) {
@@ -991,7 +998,7 @@ private:
         double irHP = 30.0/980.0;
         // Center IR section horizontally and position just below "Invader 9" text
         double irX = 0.385;  // Centered (parameterLabel is at 0.4-0.6)
-        double irStartY = 0.505;  // Just below parameterLabel (which ends at 0.51)
+        double irStartY = 0.48;  // Moved up slightly
         irBackground.setBoundsRelative(irX, irStartY, 0.23, 0.13);
         prevIRButton.setBoundsRelative(irX+0.01, irStartY+0.01, 0.03, irHP);
         prevIRButton.setAlwaysOnTop(true);
@@ -1010,9 +1017,16 @@ private:
         p4Button.setBoundsRelative(550.0/980.0, 185.0/980.0, (double)p4Button.getWidth()/width, (double)p4Button.getHeight()/height);
         p5Button.setBoundsRelative(663.0/980.0, 185.5/980.0, (double)p5Button.getWidth()/width, (double)p5Button.getHeight()/height);
         presetPanel.setBounds(getLocalBounds().removeFromTop(proportionOfHeight(0.05f)));
-        parameterLabel.setBoundsRelative(0.4, 0.45, 0.2, 0.06);
+
+        // Position parameterLabel and parameterValueLabel higher when IR button is active
+        if (audioProcessor.lastBottomButton == 3) {
+            parameterLabel.setBoundsRelative(0.4, 0.43, 0.2, 0.06);
+            parameterValueLabel.setBoundsRelative(0.4, 0.485, 0.2, 0.04);
+        } else {
+            parameterLabel.setBoundsRelative(0.4, 0.45, 0.2, 0.06);
+            parameterValueLabel.setBoundsRelative(0.4, 0.505, 0.2, 0.04);
+        }
         parameterLabel.setFont(juce::Font("Impact", sizePortion*titleSize, juce::Font::plain));
-        parameterValueLabel.setBoundsRelative(0.4, 0.505, 0.2, 0.04);
         parameterValueLabel.setFont(juce::Font("Impact", sizePortion*valueSize, juce::Font::plain));
         inGainKnob.setBoundsRelative(132/980.0, 104/980.0, (double)inGainKnob.getWidth()/980.0, (double)inGainKnob.getHeight()/980.0);
         inLabel.setBoundsRelative(131/980.0, 125/980.0, 57/width, 0.1);

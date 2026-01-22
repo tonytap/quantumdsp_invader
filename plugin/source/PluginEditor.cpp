@@ -111,8 +111,7 @@ void EqAudioProcessorEditor::buttonClicked(juce::Button *button) {
         juce::DialogWindow::LaunchOptions options;
         options.content.setOwned(audioSettingsComp); // Attach the settings component
         options.dialogTitle = TRANS("Settings"); // Set dialog title
-        juce::Colour bgColour((uint8)0x05, (uint8)0x05, (uint8)0x05, (float)1.0f);
-        options.dialogBackgroundColour = bgColour;
+        options.dialogBackgroundColour = Constants::darkBackgroundColour;
         options.escapeKeyTriggersCloseButton = true; // Close on escape key
         options.useNativeTitleBar = true; // Use native title bar
         options.resizable = false; // Non-resizable dialog

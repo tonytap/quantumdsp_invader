@@ -23,6 +23,7 @@ namespace Constants {
 
     // UI Colors
     static const juce::Colour lightColour = juce::Colour(0x56, 0xf9, 0x7c);
+    static const juce::Colour darkBackgroundColour = juce::Colour(0x05, 0x05, 0x05);
 
     static constexpr float eq1_1_slope = 1.f;
     static constexpr float eq1_1_bias = 0.f;
