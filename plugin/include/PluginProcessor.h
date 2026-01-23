@@ -25,7 +25,6 @@
 #include <LicenseSpring/LicenseManager.h>
 #include "AppConfig.h"
 #include "defines.h"
-#include "Gui/MultiColumnComboBox.h"
 
 using namespace std;
 using namespace juce;
@@ -201,8 +200,8 @@ public:
     std::vector<std::shared_ptr<dsp::ImpulseResponse>> userIRs;
     std::vector<std::shared_ptr<dsp::ImpulseResponse>> originalUserIRs;
     std::vector<juce::String> userIRPaths;  // Store paths for recall
-    MultiColumnComboBox irDropdown;
-    MultiColumnComboBox userIRDropdown;
+    juce::ComboBox irDropdown;
+    juce::ComboBox userIRDropdown;
     bool p1Switched = false;
     bool p2Switched = false;
     bool p3Switched = false;

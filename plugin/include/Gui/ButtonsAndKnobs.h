@@ -952,8 +952,8 @@ private:
 
         // Reposition labels based on IR button state (after loop completes)
         if (audioProcessor.lastBottomButton == 3) {
-            parameterLabel.setBoundsRelative(0.4, 0.43, 0.2, 0.06);
-            parameterValueLabel.setBoundsRelative(0.4, 0.485, 0.2, 0.04);
+            parameterLabel.setBoundsRelative(0.4, 0.425, 0.2, 0.06);
+            parameterValueLabel.setBoundsRelative(0.4, 0.48, 0.2, 0.04);
         } else {
             parameterLabel.setBoundsRelative(0.4, 0.45, 0.2, 0.06);
             parameterValueLabel.setBoundsRelative(0.4, 0.505, 0.2, 0.04);
@@ -999,7 +999,7 @@ private:
         double irHP = 30.0/980.0;
         // Center IR section horizontally and position just below "Invader 9" text
         double irX = 0.385;  // Centered (parameterLabel is at 0.4-0.6)
-        double irStartY = 0.48;  // Moved up slightly
+        double irStartY = 0.475;  // Moved up slightly
         irBackground.setBoundsRelative(irX, irStartY, 0.23, 0.13);
         prevIRButton.setBoundsRelative(irX+0.01, irStartY+0.01, 0.03, irHP);
         prevIRButton.setAlwaysOnTop(true);
@@ -1021,8 +1021,8 @@ private:
 
         // Position parameterLabel and parameterValueLabel higher when IR button is active
         if (audioProcessor.lastBottomButton == 3) {
-            parameterLabel.setBoundsRelative(0.4, 0.43, 0.2, 0.06);
-            parameterValueLabel.setBoundsRelative(0.4, 0.485, 0.2, 0.04);
+            parameterLabel.setBoundsRelative(0.4, 0.425, 0.2, 0.06);
+            parameterValueLabel.setBoundsRelative(0.4, 0.48, 0.2, 0.04);
         } else {
             parameterLabel.setBoundsRelative(0.4, 0.45, 0.2, 0.06);
             parameterValueLabel.setBoundsRelative(0.4, 0.505, 0.2, 0.04);
