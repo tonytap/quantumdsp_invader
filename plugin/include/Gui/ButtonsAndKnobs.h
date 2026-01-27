@@ -135,18 +135,18 @@ public:
     {
         // Draw transparent background
         g.setColour(juce::Colours::transparentBlack);
-        g.fillRoundedRectangle(0, 0, width, height, 3.0f);
+        g.fillRoundedRectangle(0, 0, width, height, 5.0f);
 
-        // Draw white outline
-        g.setColour(juce::Colours::white.withAlpha(0.5f));
-        g.drawRoundedRectangle(0, 0, width, height, 3.0f, 1.0f);
+        // Draw white outline with more weight
+        g.setColour(juce::Colours::white);
+        g.drawRoundedRectangle(0, 0, width, height, 5.0f, 2.5f);
 
         // Draw arrow
         juce::Path arrow;
         arrow.addTriangle(buttonX + buttonW * 0.3f, buttonY + buttonH * 0.4f,
                          buttonX + buttonW * 0.7f, buttonY + buttonH * 0.4f,
                          buttonX + buttonW * 0.5f, buttonY + buttonH * 0.6f);
-        g.setColour(box.findColour(juce::ComboBox::arrowColourId));
+        g.setColour(juce::Colours::white);
         g.fillPath(arrow);
     }
 
@@ -158,27 +158,27 @@ public:
 
         // Draw transparent background
         g.setColour(juce::Colours::transparentBlack);
-        g.fillRoundedRectangle(bounds, 3.0f);
+        g.fillRoundedRectangle(bounds, 5.0f);
 
-        // Draw white outline
-        g.setColour(juce::Colours::white.withAlpha(isMouseOverButton ? 0.7f : 0.5f));
-        g.drawRoundedRectangle(bounds, 3.0f, 1.0f);
+        // Draw white outline with more weight
+        g.setColour(juce::Colours::white);
+        g.drawRoundedRectangle(bounds, 5.0f, 2.5f);
     }
     // Override to set the combo box item text font
     juce::Font getComboBoxFont(juce::ComboBox& comboBox) override
     {
         comboBoxHeight = comboBox.getHeight();
-        return juce::Font("Arial", comboBoxHeight*0.6f, juce::Font::plain);
+        return juce::Font("Arial", comboBoxHeight*0.7f, juce::Font::bold);
     }
     // Override to set the font for all items in the ComboBox dropdown
     juce::Font getPopupMenuFont() override
     {
-        return juce::Font("Arial", comboBoxHeight*0.6f, juce::Font::plain); // Set font to Arial, size 14 for dropdown items
+        return juce::Font("Arial", comboBoxHeight*0.6f, juce::Font::bold); // Set font to Arial, bold for dropdown items
     }
     // Override to set the font for button text
     juce::Font getTextButtonFont(juce::TextButton&, int buttonHeight) override
     {
-        return juce::Font("Arial", buttonHeight*0.6f, juce::Font::plain); // Set font to Arial, size 14
+        return juce::Font("Arial", buttonHeight*0.55f, juce::Font::bold); // Smaller to match dropdowns
     }
     juce::Font getLabelFont(juce::Label& label) override
     {
@@ -496,6 +496,7 @@ public:
     juce::TextButton customIRButton;
     
     void activateDropdown(CustomButton* button, bool isEdited = false) {
+        parameterLabel.setVisible(true);
         if (button == &irButton) {
             return;
         }
@@ -607,7 +608,7 @@ public:
                 }
             }
 
-            parameterLabel.setText(irText, juce::dontSendNotification);
+            parameterLabel.setText("", juce::dontSendNotification);
             parameterValueLabel.setText("", juce::dontSendNotification);
         } else {
             attachMainKnob(audioProcessor.currentMainKnobID);
@@ -708,10 +709,7 @@ private:
                 audioProcessor.valueTreeState.state.setProperty("customIrOff", true, nullptr);
             }
         }
-        parameterLabel.setText(irString.getText(), juce::dontSendNotification);
-//        if (!audioProcessor.recalledFromPreset) {
-//            parameterLabel.setText(irString.getText(), juce::dontSendNotification);
-//        }
+        parameterLabel.setText("", juce::dontSendNotification);
     }
     
     void setComponentInfo(CustomButton* button, juce::ComboBox* ir = nullptr, juce::ComboBox* userIR = nullptr, juce::TextButton* next = nullptr, juce::TextButton* prev = nullptr, juce::TextButton* custom = nullptr)
@@ -812,7 +810,7 @@ private:
                     audioProcessor.valueTreeState.state.setProperty("lastTouchedDropdown", false, nullptr);
 
                     // Update label
-                    parameterLabel.setText(selectedFileName, juce::dontSendNotification);
+                    parameterLabel.setText("", juce::dontSendNotification);
                     parameterValueLabel.setText("", juce::dontSendNotification);
                 }
             });
@@ -931,10 +929,11 @@ private:
                     makeIRVisible(true);
                     juce::String irText = audioProcessor.lastTouchedDropdown->getText();
                     DBG("ir text = " << irText);
-                    parameterLabel.setText(irText, juce::dontSendNotification);
+                    parameterLabel.setVisible(false);
                     parameterValueLabel.setText("", juce::dontSendNotification);
                 }
                 else {
+                    parameterLabel.setVisible(true);
                     attachMainKnob(audioProcessor.currentMainKnobID);
                     DBG("Main knob attached to: " << audioProcessor.currentMainKnobID);
                 }
@@ -948,15 +947,6 @@ private:
 
                 valueTreeState.state.setProperty("lastBottomButton", audioProcessor.lastBottomButton, nullptr);
             }
-        }
-
-        // Reposition labels based on IR button state (after loop completes)
-        if (audioProcessor.lastBottomButton == 3) {
-            parameterLabel.setBoundsRelative(0.4, 0.425, 0.2, 0.06);
-            parameterValueLabel.setBoundsRelative(0.4, 0.48, 0.2, 0.04);
-        } else {
-            parameterLabel.setBoundsRelative(0.4, 0.45, 0.2, 0.06);
-            parameterValueLabel.setBoundsRelative(0.4, 0.505, 0.2, 0.04);
         }
     }
     
@@ -995,20 +985,25 @@ private:
         eqButton.setBoundsRelative(438.0/980.0, 745.0/980.0, (double)eqButton.getWidth()/width, (double)eqButton.getHeight()/height);
         irButton.setBoundsRelative(549.5/980.0, 747.0/980.0, (double)irButton.getWidth()/width, (double)irButton.getHeight()/height);
         fxButton.setBoundsRelative(662.5/980.0, 747.5/980.0, (double)fxButton.getWidth()/width, (double)fxButton.getHeight()/height);
-        double irWP = 0.14;
-        double irHP = 30.0/980.0;
-        // Center IR section horizontally and position just below "Invader 9" text
-        double irX = 0.385;  // Centered (parameterLabel is at 0.4-0.6)
-        double irStartY = 0.475;  // Moved up slightly
-        irBackground.setBoundsRelative(irX, irStartY, 0.23, 0.13);
-        prevIRButton.setBoundsRelative(irX+0.01, irStartY+0.01, 0.03, irHP);
+        double irWP = 0.145;  // Dropdown width (slightly smaller)
+        double irHP = 31.0/980.0;  // Dropdown height (slightly smaller)
+        double irStartY = 0.46;
+
+        // Center dropdowns at 0.5 with slight offset for visual centering
+        double dropdownX = 0.5 - irWP/2 + 0.003;  // Shifted slightly right
+        prevIRButton.setBoundsRelative(dropdownX - 0.01 - 0.03, irStartY+0.01, 0.03, irHP);
         prevIRButton.setAlwaysOnTop(true);
-        nextIRButton.setBoundsRelative(irX+0.045+irWP+0.005, irStartY+0.01, 0.03, irHP);
+        nextIRButton.setBoundsRelative(dropdownX + irWP + 0.005, irStartY+0.01, 0.03, irHP);
         nextIRButton.setAlwaysOnTop(true);
-        irDropdown.setBoundsRelative(irX+0.045, irStartY+0.01, irWP, irHP);
-        userIRDropdown.setBoundsRelative(irX+0.045, irStartY+0.05, irWP, irHP);
+        irDropdown.setBoundsRelative(dropdownX, irStartY+0.01, irWP, irHP);
+        userIRDropdown.setBoundsRelative(dropdownX, irStartY+0.055, irWP, irHP);
         userIRDropdown.setAlwaysOnTop(true);
-        customIRButton.setBoundsRelative(irX+0.045, irStartY+0.09, irWP, irHP);
+        customIRButton.setBoundsRelative(dropdownX, irStartY+0.1, irWP, irHP);
+
+        // Background covers all elements
+        double bgX = dropdownX - 0.04;
+        double bgW = irWP + 0.08;
+        irBackground.setBoundsRelative(bgX, irStartY, bgW, 0.14);
         customIRButton.setAlwaysOnTop(true);
         irDropdown.setAlwaysOnTop(true);
         irDropdown.repaint();
@@ -1021,12 +1016,12 @@ private:
 
         // Position parameterLabel and parameterValueLabel higher when IR button is active
         if (audioProcessor.lastBottomButton == 3) {
-            parameterLabel.setBoundsRelative(0.4, 0.425, 0.2, 0.06);
-            parameterValueLabel.setBoundsRelative(0.4, 0.48, 0.2, 0.04);
+            parameterLabel.setVisible(false);
         } else {
-            parameterLabel.setBoundsRelative(0.4, 0.45, 0.2, 0.06);
-            parameterValueLabel.setBoundsRelative(0.4, 0.505, 0.2, 0.04);
+            parameterLabel.setVisible(true);
         }
+        parameterLabel.setBoundsRelative(0.4, 0.45, 0.2, 0.06);
+        parameterValueLabel.setBoundsRelative(0.4, 0.505, 0.2, 0.04);
         parameterLabel.setFont(juce::Font("Impact", sizePortion*titleSize, juce::Font::plain));
         parameterValueLabel.setFont(juce::Font("Impact", sizePortion*valueSize, juce::Font::plain));
         inGainKnob.setBoundsRelative(132/980.0, 104/980.0, (double)inGainKnob.getWidth()/980.0, (double)inGainKnob.getHeight()/980.0);

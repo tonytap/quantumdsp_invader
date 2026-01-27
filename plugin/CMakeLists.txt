@@ -9,7 +9,7 @@ juce_add_plugin(${PROJECT_NAME}
     FORMATS AU VST3 AAX Standalone
     PRODUCT_NAME "Invader"
     MICROPHONE_PERMISSION_ENABLED TRUE
-    COPY_PLUGIN_AFTER_BUILD TRUE
+    COPY_PLUGIN_AFTER_BUILD FALSE
     VST3_COPY_DIR "$ENV{HOME}/Library/Audio/Plug-Ins/VST3"
     AU_COPY_DIR "$ENV{HOME}/Library/Audio/Plug-Ins/Components"
     ICON_BIG "${CMAKE_SOURCE_DIR}/plugin/resources/InvaderIcon.icns"
