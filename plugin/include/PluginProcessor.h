@@ -75,9 +75,12 @@ public:
     void getStateInformation (juce::MemoryBlock& destData) override;
     void setStateInformation (const void* data, int sizeInBytes) override;
 
-    /*static*/ std::vector<std::shared_ptr<nam::DSP>> models;
-    /*static*/ std::vector<std::shared_ptr<dsp::ImpulseResponse>> factoryIRs;
-    std::vector<std::shared_ptr<dsp::ImpulseResponse>> originalFactoryIRs;
+    // Shared resources across all plugin instances
+    static std::vector<std::shared_ptr<nam::DSP>> models;
+    static std::vector<std::shared_ptr<dsp::ImpulseResponse>> factoryIRs;
+    static std::vector<std::shared_ptr<dsp::ImpulseResponse>> originalFactoryIRs;
+    static std::once_flag modelsInitFlag;
+    static std::once_flag irsInitFlag;
 
     std::atomic<bool> licenseVisibility {false};
 
@@ -111,8 +114,6 @@ public:
     bool isAmp1 = true;
     AudioProcessorValueTreeState valueTreeState;
     juce::ComboBox* lastTouchedDropdown = &irDropdown;
-    void loadModel(const int amp_idx, double gainLvl, unsigned long i);
-    void loadIR(const int i, double sampleRate = 48000.0);
     juce::StringArray loadUserIRsFromDirectory(const juce::String& customIRPath);
     juce::File writeBinaryDataToTempFile(const void* data, int size, const juce::String& fileName);
     std::tuple<std::unique_ptr<juce::XmlElement>, juce::File> writePresetBinaryDataToTempFile(const void* data, int size, const juce::String& fileName);
@@ -120,6 +121,13 @@ public:
     {
         return models;
     }
+
+    // Static initialization methods for shared resources
+    static void initializeSharedModels();
+    static void initializeSharedIRs();
+    static void loadModel(const int amp_idx, double gainLvl, unsigned long i);
+    static void loadIR(const int i, double sampleRate = 48000.0);
+
     void setPresetPath(const juce::String& newPath) { presetPath = newPath; }
     const juce::String& getPresetPath() const { return presetPath; }
     float getCurrentPitch() {return pitch;}

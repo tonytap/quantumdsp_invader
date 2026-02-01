@@ -10,6 +10,15 @@
 #include "../include/PluginEditor.h"
 #include "../include/Service/PresetManager.h"
 #include <cmath>
+#include <mutex>
+
+//==============================================================================
+// Define static shared resources
+std::vector<std::shared_ptr<nam::DSP>> EqAudioProcessor::models;
+std::vector<std::shared_ptr<dsp::ImpulseResponse>> EqAudioProcessor::factoryIRs;
+std::vector<std::shared_ptr<dsp::ImpulseResponse>> EqAudioProcessor::originalFactoryIRs;
+std::once_flag EqAudioProcessor::modelsInitFlag;
+std::once_flag EqAudioProcessor::irsInitFlag;
 
 //==============================================================================
 EqAudioProcessor::EqAudioProcessor()
@@ -45,18 +54,13 @@ irResampler(48000.0)
     valueTreeState.state.setProperty("version", Constants::versionNum, nullptr);
     valueTreeState.state.setProperty("presetPath", "", nullptr);
     presetManager = std::make_unique<Service::PresetManager>(valueTreeState);
-    if (models.empty()) {
-        models.resize(numModelFiles);
-        unsigned long i = 0;
-        for (double gain = 1.0; gain <= 10.0; gain += 0.5) {
-            loadModel(1, gain, i);
-            i++;
-        }
-        for (double gain = 1.0; gain <= 10.0; gain += 0.5) {
-            loadModel(2, gain, i);
-            i++;
-        }
-    }
+
+    // Initialize shared resources only once across all instances
+    DBG("=== Creating EqAudioProcessor instance ===");
+    std::call_once(modelsInitFlag, &EqAudioProcessor::initializeSharedModels);
+    std::call_once(irsInitFlag, &EqAudioProcessor::initializeSharedIRs);
+    DBG("=== After call_once: models.size()=" << models.size() << ", factoryIRs.size()=" << factoryIRs.size() << " ===");
+
     amp1_dsp = models[0];
     old_model = models[0];
     irIn = new double*[1];
@@ -65,11 +69,6 @@ irResampler(48000.0)
     fftSize = 1024;
     acf.resize(fftSize);
     all_frequencies = generateReferenceFrequencies();
-    factoryIRs.resize(Constants::NUM_IRS);
-    originalFactoryIRs.resize(Constants::NUM_IRS);
-    for (int n = 1; n <= Constants::NUM_IRS; n++) {
-        loadIR(n);
-    }
     mNoiseGateTrigger.AddListener(&mNoiseGateGain);
     userIRDropdown.setTextWhenNothingSelected("Custom IRs");
     irDropdown.setTextWhenNothingSelected("Factory IRs");
@@ -183,162 +182,16 @@ void EqAudioProcessor::loadFactoryPresets(int i) {
 }
 
 void EqAudioProcessor::loadModel(const int amp_idx, double gainLvl, unsigned long i) {
-//    return;
-    juce::String modelName = "AMP"+juce::String(amp_idx)+"-GAIN"+juce::String(gainLvl, 1)+".wav.nam";
+    // Format gain string: replace dot with underscore, or strip .0 for integer gains
+    juce::String gainStr = juce::String(gainLvl, 1);
+    gainStr = gainStr.replace(".", "_");
+
+    // Construct binary resource name: AMP{amp_idx}GAIN{gain}_wav_nam
+    std::string modelBinaryName = "AMP" + std::to_string(amp_idx) + "GAIN" + gainStr.toStdString() + "_wav_nam";
+
     const void* modelData = nullptr;
     int modelSize = 0;
-    if (modelName == "AMP1-GAIN1.0.wav.nam") {
-        modelData = BinaryData::AMP1GAIN1_0_wav_nam;
-        modelSize = BinaryData::AMP1GAIN1_0_wav_namSize;
-    }
-    else if (modelName == "AMP1-GAIN1.5.wav.nam") {
-        modelData = BinaryData::AMP1GAIN1_5_wav_nam;
-        modelSize = BinaryData::AMP1GAIN1_5_wav_namSize;
-    }
-    else if (modelName == "AMP1-GAIN2.0.wav.nam") {
-        modelData = BinaryData::AMP1GAIN2_0_wav_nam;
-        modelSize = BinaryData::AMP1GAIN2_0_wav_namSize;
-    }
-    else if (modelName == "AMP1-GAIN2.5.wav.nam") {
-        modelData = BinaryData::AMP1GAIN2_5_wav_nam;
-        modelSize = BinaryData::AMP1GAIN2_5_wav_namSize;
-    }
-    else if (modelName == "AMP1-GAIN3.0.wav.nam") {
-        modelData = BinaryData::AMP1GAIN3_0_wav_nam;
-        modelSize = BinaryData::AMP1GAIN3_0_wav_namSize;
-    }
-    else if (modelName == "AMP1-GAIN3.5.wav.nam") {
-        modelData = BinaryData::AMP1GAIN3_5_wav_nam;
-        modelSize = BinaryData::AMP1GAIN3_5_wav_namSize;
-    }
-    else if (modelName == "AMP1-GAIN4.0.wav.nam") {
-        modelData = BinaryData::AMP1GAIN4_0_wav_nam;
-        modelSize = BinaryData::AMP1GAIN4_0_wav_namSize;
-    }
-    else if (modelName == "AMP1-GAIN4.5.wav.nam") {
-        modelData = BinaryData::AMP1GAIN4_5_wav_nam;
-        modelSize = BinaryData::AMP1GAIN4_5_wav_namSize;
-    }
-    else if (modelName == "AMP1-GAIN5.0.wav.nam") {
-        modelData = BinaryData::AMP1GAIN5_0_wav_nam;
-        modelSize = BinaryData::AMP1GAIN5_0_wav_namSize;
-    }
-    else if (modelName == "AMP1-GAIN5.5.wav.nam") {
-        modelData = BinaryData::AMP1GAIN5_5_wav_nam;
-        modelSize = BinaryData::AMP1GAIN5_5_wav_namSize;
-    }
-    else if (modelName == "AMP1-GAIN6.0.wav.nam") {
-        modelData = BinaryData::AMP1GAIN6_0_wav_nam;
-        modelSize = BinaryData::AMP1GAIN6_0_wav_namSize;
-    }
-    else if (modelName == "AMP1-GAIN6.5.wav.nam") {
-        modelData = BinaryData::AMP1GAIN6_5_wav_nam;
-        modelSize = BinaryData::AMP1GAIN6_5_wav_namSize;
-    }
-    else if (modelName == "AMP1-GAIN7.0.wav.nam") {
-        modelData = BinaryData::AMP1GAIN7_0_wav_nam;
-        modelSize = BinaryData::AMP1GAIN7_0_wav_namSize;
-    }
-    else if (modelName == "AMP1-GAIN7.5.wav.nam") {
-        modelData = BinaryData::AMP1GAIN7_5_wav_nam;
-        modelSize = BinaryData::AMP1GAIN7_5_wav_namSize;
-    }
-    else if (modelName == "AMP1-GAIN8.0.wav.nam") {
-        modelData = BinaryData::AMP1GAIN8_0_wav_nam;
-        modelSize = BinaryData::AMP1GAIN8_0_wav_namSize;
-    }
-    else if (modelName == "AMP1-GAIN8.5.wav.nam") {
-        modelData = BinaryData::AMP1GAIN8_5_wav_nam;
-        modelSize = BinaryData::AMP1GAIN8_5_wav_namSize;
-    }
-    else if (modelName == "AMP1-GAIN9.0.wav.nam") {
-        modelData = BinaryData::AMP1GAIN9_0_wav_nam;
-        modelSize = BinaryData::AMP1GAIN9_0_wav_namSize;
-    }
-    else if (modelName == "AMP1-GAIN9.5.wav.nam") {
-        modelData = BinaryData::AMP1GAIN9_5_wav_nam;
-        modelSize = BinaryData::AMP1GAIN9_5_wav_namSize;
-    }
-    else if (modelName == "AMP1-GAIN10.0.wav.nam") {
-        modelData = BinaryData::AMP1GAIN10_wav_nam;
-        modelSize = BinaryData::AMP1GAIN10_wav_namSize;
-    }
-    else if (modelName == "AMP2-GAIN1.0.wav.nam") {
-        modelData = BinaryData::AMP2GAIN1_0_wav_nam;
-        modelSize = BinaryData::AMP2GAIN1_0_wav_namSize;
-    }
-    else if (modelName == "AMP2-GAIN1.5.wav.nam") {
-        modelData = BinaryData::AMP2GAIN1_5_wav_nam;
-        modelSize = BinaryData::AMP2GAIN1_5_wav_namSize;
-    }
-    else if (modelName == "AMP2-GAIN2.0.wav.nam") {
-        modelData = BinaryData::AMP2GAIN2_0_wav_nam;
-        modelSize = BinaryData::AMP2GAIN2_0_wav_namSize;
-    }
-    else if (modelName == "AMP2-GAIN2.5.wav.nam") {
-        modelData = BinaryData::AMP2GAIN2_5_wav_nam;
-        modelSize = BinaryData::AMP2GAIN2_5_wav_namSize;
-    }
-    else if (modelName == "AMP2-GAIN3.0.wav.nam") {
-        modelData = BinaryData::AMP2GAIN3_0_wav_nam;
-        modelSize = BinaryData::AMP2GAIN3_0_wav_namSize;
-    }
-    else if (modelName == "AMP2-GAIN3.5.wav.nam") {
-        modelData = BinaryData::AMP2GAIN3_5_wav_nam;
-        modelSize = BinaryData::AMP2GAIN3_5_wav_namSize;
-    }
-    else if (modelName == "AMP2-GAIN4.0.wav.nam") {
-        modelData = BinaryData::AMP2GAIN4_0_wav_nam;
-        modelSize = BinaryData::AMP2GAIN4_0_wav_namSize;
-    }
-    else if (modelName == "AMP2-GAIN4.5.wav.nam") {
-        modelData = BinaryData::AMP2GAIN4_5_wav_nam;
-        modelSize = BinaryData::AMP2GAIN4_5_wav_namSize;
-    }
-    else if (modelName == "AMP2-GAIN5.0.wav.nam") {
-        modelData = BinaryData::AMP2GAIN5_0_wav_nam;
-        modelSize = BinaryData::AMP2GAIN5_0_wav_namSize;
-    }
-    else if (modelName == "AMP2-GAIN5.5.wav.nam") {
-        modelData = BinaryData::AMP2GAIN5_5_wav_nam;
-        modelSize = BinaryData::AMP2GAIN5_5_wav_namSize;
-    }
-    else if (modelName == "AMP2-GAIN6.0.wav.nam") {
-        modelData = BinaryData::AMP2GAIN6_0_wav_nam;
-        modelSize = BinaryData::AMP2GAIN6_0_wav_namSize;
-    }
-    else if (modelName == "AMP2-GAIN6.5.wav.nam") {
-        modelData = BinaryData::AMP2GAIN6_5_wav_nam;
-        modelSize = BinaryData::AMP2GAIN6_5_wav_namSize;
-    }
-    else if (modelName == "AMP2-GAIN7.0.wav.nam") {
-        modelData = BinaryData::AMP2GAIN7_0_wav_nam;
-        modelSize = BinaryData::AMP2GAIN7_0_wav_namSize;
-    }
-    else if (modelName == "AMP2-GAIN7.5.wav.nam") {
-        modelData = BinaryData::AMP2GAIN7_5_wav_nam;
-        modelSize = BinaryData::AMP2GAIN7_5_wav_namSize;
-    }
-    else if (modelName == "AMP2-GAIN8.0.wav.nam") {
-        modelData = BinaryData::AMP2GAIN8_0_wav_nam;
-        modelSize = BinaryData::AMP2GAIN8_0_wav_namSize;
-    }
-    else if (modelName == "AMP2-GAIN8.5.wav.nam") {
-        modelData = BinaryData::AMP2GAIN8_5_wav_nam;
-        modelSize = BinaryData::AMP2GAIN8_5_wav_namSize;
-    }
-    else if (modelName == "AMP2-GAIN9.0.wav.nam") {
-        modelData = BinaryData::AMP2GAIN9_0_wav_nam;
-        modelSize = BinaryData::AMP2GAIN9_0_wav_namSize;
-    }
-    else if (modelName == "AMP2-GAIN9.5.wav.nam") {
-        modelData = BinaryData::AMP2GAIN9_5_wav_nam;
-        modelSize = BinaryData::AMP2GAIN9_5_wav_namSize;
-    }
-    else if (modelName == "AMP2-GAIN10.0.wav.nam") {
-        modelData = BinaryData::AMP2GAIN10_wav_nam;
-        modelSize = BinaryData::AMP2GAIN10_wav_namSize;
-    }
+    modelData = BinaryData::getNamedResource(modelBinaryName.c_str(), modelSize);
 
     if (modelData != nullptr && modelSize > 0)
     {
@@ -415,7 +268,37 @@ void EqAudioProcessor::loadIR(const int i, double sampleRate) {
         factoryIRs[i-1] = std::make_shared<dsp::ImpulseResponse>(irInfo, sampleRate);
         originalFactoryIRs[i-1] = std::make_shared<dsp::ImpulseResponse>(irInfo, sampleRate);
     }
-    
+
+}
+
+void EqAudioProcessor::initializeSharedModels()
+{
+    DBG("=== INITIALIZING SHARED MODELS (should only happen once) ===");
+    const int numModelFiles = 38;
+    models.resize(numModelFiles);
+
+    unsigned long i = 0;
+    for (double gain = 1.0; gain <= 10.0; gain += 0.5) {
+        loadModel(1, gain, i);
+        i++;
+    }
+    for (double gain = 1.0; gain <= 10.0; gain += 0.5) {
+        loadModel(2, gain, i);
+        i++;
+    }
+    DBG("=== SHARED MODELS INITIALIZED: " << models.size() << " models ===");
+}
+
+void EqAudioProcessor::initializeSharedIRs()
+{
+    DBG("=== INITIALIZING SHARED IRs (should only happen once) ===");
+    factoryIRs.resize(Constants::NUM_IRS);
+    originalFactoryIRs.resize(Constants::NUM_IRS);
+
+    for (int n = 1; n <= Constants::NUM_IRS; n++) {
+        loadIR(n);
+    }
+    DBG("=== SHARED IRs INITIALIZED: " << factoryIRs.size() << " IRs ===");
 }
 
 juce::StringArray EqAudioProcessor::loadUserIRsFromDirectory(const juce::String& customIRPath)
