@@ -755,6 +755,10 @@ private:
             if (audioProcessor.lastTouchedDropdown == &irDropdown) {
                 if (factoryIRId == 1) {
                     userIRDropdown.setSelectedId(nUsrIR);
+                    // Force call if ID didn't change (already on "Off")
+                    if (userIRDropdown.getSelectedId() == nUsrIR) {
+                        comboBoxChanged(&userIRDropdown);
+                    }
                 }
                 else {
                     irDropdown.setSelectedId(factoryIRId-1);
@@ -763,6 +767,10 @@ private:
             else {
                 if (userIRId == 1) {
                     irDropdown.setSelectedId(nFacIR);
+                    // Force call if ID didn't change (already on "Off")
+                    if (irDropdown.getSelectedId() == nFacIR) {
+                        comboBoxChanged(&irDropdown);
+                    }
                 }
                 else {
                     userIRDropdown.setSelectedId(userIRId-1);
@@ -808,6 +816,7 @@ private:
                     // Write properties LAST so listeners see fully updated state
                     audioProcessor.valueTreeState.state.setProperty("customIR", dspPath, nullptr);
                     audioProcessor.valueTreeState.state.setProperty("lastTouchedDropdown", false, nullptr);
+                    audioProcessor.lastTouchedDropdown = &userIRDropdown;
 
                     // Update label
                     parameterLabel.setText("", juce::dontSendNotification);
@@ -987,18 +996,18 @@ private:
         fxButton.setBoundsRelative(662.5/980.0, 747.5/980.0, (double)fxButton.getWidth()/width, (double)fxButton.getHeight()/height);
         double irWP = 0.145;  // Dropdown width (slightly smaller)
         double irHP = 31.0/980.0;  // Dropdown height (slightly smaller)
-        double irStartY = 0.46;
+        double irStartY = 0.44;  // Moved up to center vertically
 
         // Center dropdowns at 0.5 with slight offset for visual centering
-        double dropdownX = 0.5 - irWP/2 + 0.003;  // Shifted slightly right
-        prevIRButton.setBoundsRelative(dropdownX - 0.01 - 0.03, irStartY+0.01, 0.03, irHP);
+        double dropdownX = 0.5 - irWP/2 + 0.003;
+        prevIRButton.setBoundsRelative(dropdownX - 0.01 - 0.03, irStartY+0.055, 0.03, irHP);
         prevIRButton.setAlwaysOnTop(true);
-        nextIRButton.setBoundsRelative(dropdownX + irWP + 0.005, irStartY+0.01, 0.03, irHP);
+        nextIRButton.setBoundsRelative(dropdownX + irWP + 0.005, irStartY+0.055, 0.03, irHP);
         nextIRButton.setAlwaysOnTop(true);
-        irDropdown.setBoundsRelative(dropdownX, irStartY+0.01, irWP, irHP);
-        userIRDropdown.setBoundsRelative(dropdownX, irStartY+0.055, irWP, irHP);
+        irDropdown.setBoundsRelative(dropdownX-0.0025, irStartY+0.01, irWP, irHP);
+        userIRDropdown.setBoundsRelative(dropdownX-0.0025, irStartY+0.055, irWP, irHP);
         userIRDropdown.setAlwaysOnTop(true);
-        customIRButton.setBoundsRelative(dropdownX, irStartY+0.1, irWP, irHP);
+        customIRButton.setBoundsRelative(dropdownX-0.0025, irStartY+0.1, irWP, irHP);
 
         // Background covers all elements
         double bgX = dropdownX - 0.04;

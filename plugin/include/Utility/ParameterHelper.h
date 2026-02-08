@@ -27,7 +27,7 @@ namespace Utility
                 std::make_unique<AudioParameterFloat>("amp gain", "Amp Gain", NormalisableRange<float>{1.f, 10.f, 0.1f}, 7.0f),
                 std::make_unique<AudioParameterFloat>("boost gain", "Boost Amp Gain", NormalisableRange<float>{1.f, 10.f, 0.5f}, 1.f),
                 std::make_unique<AudioParameterBool>("is amp 1", "is amp 1", true),
-                std::make_unique<AudioParameterBool>("is eq 1", "is eq 1", false),
+                std::make_unique<AudioParameterBool>("is eq 1", "is eq 1", true),
                 std::make_unique<AudioParameterBool>("is fx 1", "is fx 1", false),
                 std::make_unique<AudioParameterBool>("amp smooth", "Amp Smooth", false),
                 std::make_unique<AudioParameterInt>("ir selection", "IR Selection", 0, Constants::NUM_IRS, 3),

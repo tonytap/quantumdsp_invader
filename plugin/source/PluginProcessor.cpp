@@ -182,6 +182,7 @@ void EqAudioProcessor::loadFactoryPresets(int i) {
 }
 
 void EqAudioProcessor::loadModel(const int amp_idx, double gainLvl, unsigned long i) {
+//    return;
     // Format gain string: replace dot with underscore, or strip .0 for integer gains
     juce::String gainStr = juce::String(gainLvl, 1);
     gainStr = gainStr.replace(".", "_");
@@ -251,6 +252,7 @@ void EqAudioProcessor::loadModel(const int amp_idx, double gainLvl, unsigned lon
 }
 
 void EqAudioProcessor::loadIR(const int i, double sampleRate) {
+//    return;
     const char* irData = nullptr;
     int irSize = 0;
     juce::String irName = juce::String(Constants::productName)+" "+juce::String(i);
