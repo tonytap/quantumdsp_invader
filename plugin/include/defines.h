@@ -39,4 +39,6 @@ namespace Constants {
     static constexpr float fc_eq1_2 = 800;
     static constexpr float fc_eq2_1 = 2000;
     static constexpr float fc_eq2_2 = 5000;
+
+    static constexpr float bpm = 80.f;
 }
