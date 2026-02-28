@@ -13,9 +13,6 @@
 #include <mutex>
 
 //==============================================================================
-// No more static shared resources for models and IRs - each instance gets its own
-
-//==============================================================================
 EqAudioProcessor::EqAudioProcessor()
 #ifndef JucePlugin_PreferredChannelConfigurations
      : AudioProcessor (BusesProperties()
@@ -49,13 +46,19 @@ irResampler(48000.0)
     valueTreeState.state.setProperty("version", Constants::versionNum, nullptr);
     valueTreeState.state.setProperty("presetPath", "", nullptr);
     presetManager = std::make_unique<Service::PresetManager>(valueTreeState);
-
-    // Initialize per-instance resources (each instance gets its own models and IRs)
-    DBG("=== Creating EqAudioProcessor instance ===");
-    initializeModels();
-    initializeIRs();
-    DBG("=== After initialization: models.size()=" << models.size() << ", factoryIRs.size()=" << factoryIRs.size() << " ===");
-
+    if (models.empty()) {
+        models.resize(numModelFiles);
+        unsigned long i = 0;
+        for (double gain = 1.0; gain <= 10.0; gain += 0.5) {
+            loadModel(1, gain, i);
+            i++;
+        }
+        for (double gain = 1.0; gain <= 10.0; gain += 0.5) {
+            loadModel(2, gain, i);
+            i++;
+        }
+    }
+    
     amp1_dsp = models[0];
     old_model = models[0];
     irIn = new double*[1];
@@ -64,6 +67,11 @@ irResampler(48000.0)
     fftSize = 1024;
     acf.resize(fftSize);
     all_frequencies = generateReferenceFrequencies();
+    factoryIRs.resize(Constants::NUM_IRS);
+    originalFactoryIRs.resize(Constants::NUM_IRS);
+    for (int n = 1; n <= Constants::NUM_IRS; n++) {
+        loadIR(n);
+    }
     mNoiseGateTrigger.AddListener(&mNoiseGateGain);
     userIRDropdown.setTextWhenNothingSelected("Custom IRs");
     irDropdown.setTextWhenNothingSelected("Factory IRs");
@@ -177,7 +185,6 @@ void EqAudioProcessor::loadFactoryPresets(int i) {
 }
 
 void EqAudioProcessor::loadModel(const int amp_idx, double gainLvl, unsigned long i) {
-//    return;
     // Format gain string: replace dot with underscore, or strip .0 for integer gains
     juce::String gainStr = juce::String(gainLvl, 1);
     gainStr = gainStr.replace(".", "_");
@@ -221,7 +228,7 @@ void EqAudioProcessor::loadModel(const int amp_idx, double gainLvl, unsigned lon
                         auto* configDynamicObject = attributeValue.getDynamicObject();
                         juce::String jsonString = juce::JSON::toString(juce::var(configDynamicObject));
                         nlohmann::json jsonObject = nlohmann::json::parse(jsonString.toStdString());
-                        conf.config = jsonObject;
+                        conf.metadata = jsonObject;
                     }
                     else if (attributeName == "weights") {
                         if (attributeValue.isArray()) {
@@ -266,36 +273,6 @@ void EqAudioProcessor::loadIR(const int i, double sampleRate) {
         originalFactoryIRs[i-1] = std::make_shared<dsp::ImpulseResponse>(irInfo, sampleRate);
     }
 
-}
-
-void EqAudioProcessor::initializeModels()
-{
-    DBG("=== INITIALIZING PER-INSTANCE MODELS ===");
-    const int numModelFiles = 38;
-    models.resize(numModelFiles);
-
-    unsigned long i = 0;
-    for (double gain = 1.0; gain <= 10.0; gain += 0.5) {
-        loadModel(1, gain, i);
-        i++;
-    }
-    for (double gain = 1.0; gain <= 10.0; gain += 0.5) {
-        loadModel(2, gain, i);
-        i++;
-    }
-    DBG("=== PER-INSTANCE MODELS INITIALIZED: " << models.size() << " models ===");
-}
-
-void EqAudioProcessor::initializeIRs()
-{
-    DBG("=== INITIALIZING PER-INSTANCE IRs ===");
-    factoryIRs.resize(Constants::NUM_IRS);
-    originalFactoryIRs.resize(Constants::NUM_IRS);
-
-    for (int n = 1; n <= Constants::NUM_IRS; n++) {
-        loadIR(n);
-    }
-    DBG("=== PER-INSTANCE IRs INITIALIZED: " << factoryIRs.size() << " IRs ===");
 }
 
 juce::StringArray EqAudioProcessor::loadUserIRsFromDirectory(const juce::String& customIRPath)
@@ -757,31 +734,31 @@ void EqAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::Mid
                 channelData[i] = yGlobalEQ;
             }
         }
-        float reverbMix = valueTreeState.getParameterAsValue("reverb").getValue();
-        Hall->wet = 3.0*reverbMix/1.6666666666667;
-        if (Hall->wet > 0.0) {
-            if (totalNumInputChannels > 1) {
-                applyReverb(Hall, chL, chR, reverbWetL, reverbWetR, &reverbWp, buffer.getNumSamples(), Constants::BUFFERSIZE, 2);
-                for (int i = 0; i < buffer.getNumSamples(); i++) {
-                    chL[i] += reverbWetL[reverbRp];
-                    chR[i] += reverbWetR[reverbRp];
-                    reverbRp++;
-                    if (reverbRp >= Constants::BUFFERSIZE) {
-                        reverbRp = 0;
-                    }
-                }
-            }
-            else {
-                applyReverb(Hall, chL, chL, reverbWetL, reverbWetR, &reverbWp, buffer.getNumSamples(), Constants::BUFFERSIZE, 1);
-                for (int i = 0; i < buffer.getNumSamples(); i++) {
-                    chL[i] += reverbWetL[reverbRp];
-                    reverbRp++;
-                    if (reverbRp >= Constants::BUFFERSIZE) {
-                        reverbRp = 0;
-                    }
-                }
-            }
-        }
+//        float reverbMix = valueTreeState.getParameterAsValue("reverb").getValue();
+//        Hall->wet = 3.0*reverbMix/1.6666666666667;
+//        if (Hall->wet > 0.0) {
+//            if (totalNumInputChannels > 1) {
+//                applyReverb(Hall, chL, chR, reverbWetL, reverbWetR, &reverbWp, buffer.getNumSamples(), Constants::BUFFERSIZE, 2);
+//                for (int i = 0; i < buffer.getNumSamples(); i++) {
+//                    chL[i] += reverbWetL[reverbRp];
+//                    chR[i] += reverbWetR[reverbRp];
+//                    reverbRp++;
+//                    if (reverbRp >= Constants::BUFFERSIZE) {
+//                        reverbRp = 0;
+//                    }
+//                }
+//            }
+//            else {
+//                applyReverb(Hall, chL, chL, reverbWetL, reverbWetR, &reverbWp, buffer.getNumSamples(), Constants::BUFFERSIZE, 1);
+//                for (int i = 0; i < buffer.getNumSamples(); i++) {
+//                    chL[i] += reverbWetL[reverbRp];
+//                    reverbRp++;
+//                    if (reverbRp >= Constants::BUFFERSIZE) {
+//                        reverbRp = 0;
+//                    }
+//                }
+//            }
+//        }
 
         // DELAY (after reverb, before output gain)
         if (auto* playHead = getPlayHead())

@@ -16,6 +16,9 @@
 #include "delay.h"
 #include "../NeuralAmpModelerCore/NAM/dsp.h"
 #include "../NeuralAmpModelerCore/NAM/wavenet.h"
+#include "../NeuralAmpModelerCore/NAM/dsp_shared.h"
+#include "../NeuralAmpModelerCore/NAM/model_weights.h"
+#include "../NeuralAmpModelerCore/NAM/get_dsp_shared.h"
 #include "../dsp/NoiseGate.h"
 #include "../dsp/ResamplingContainer/ResamplingContainer.h"
 #include <Eigen/Dense>
@@ -75,8 +78,8 @@ public:
     void getStateInformation (juce::MemoryBlock& destData) override;
     void setStateInformation (const void* data, int sizeInBytes) override;
 
-    // Per-instance resources (each instance needs its own copy to avoid race conditions during processing)
     std::vector<std::shared_ptr<nam::DSP>> models;
+
     std::vector<std::shared_ptr<dsp::ImpulseResponse>> factoryIRs;
     std::vector<std::shared_ptr<dsp::ImpulseResponse>> originalFactoryIRs;
 
@@ -115,15 +118,14 @@ public:
     juce::StringArray loadUserIRsFromDirectory(const juce::String& customIRPath);
     juce::File writeBinaryDataToTempFile(const void* data, int size, const juce::String& fileName);
     std::tuple<std::unique_ptr<juce::XmlElement>, juce::File> writePresetBinaryDataToTempFile(const void* data, int size, const juce::String& fileName);
+    // Helper to get raw pointer to model
     const std::vector<std::shared_ptr<nam::DSP>>& getModels() const
     {
         return models;
     }
 
-    // Per-instance initialization methods
-    void initializeModels();
-    void initializeIRs();
     void loadModel(const int amp_idx, double gainLvl, unsigned long i);
+
     void loadIR(const int i, double sampleRate = 48000.0);
 
     void setPresetPath(const juce::String& newPath) { presetPath = newPath; }
