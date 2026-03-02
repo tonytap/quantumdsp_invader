@@ -13,6 +13,14 @@
 #include <mutex>
 
 //==============================================================================
+// Define static shared resources
+std::vector<std::shared_ptr<nam::DSP>> EqAudioProcessor::models;
+std::vector<std::shared_ptr<dsp::ImpulseResponse>> EqAudioProcessor::factoryIRs;
+std::vector<std::shared_ptr<dsp::ImpulseResponse>> EqAudioProcessor::originalFactoryIRs;
+std::once_flag EqAudioProcessor::modelsInitFlag;
+std::once_flag EqAudioProcessor::irsInitFlag;
+
+//==============================================================================
 EqAudioProcessor::EqAudioProcessor()
 #ifndef JucePlugin_PreferredChannelConfigurations
      : AudioProcessor (BusesProperties()
@@ -46,19 +54,13 @@ irResampler(48000.0)
     valueTreeState.state.setProperty("version", Constants::versionNum, nullptr);
     valueTreeState.state.setProperty("presetPath", "", nullptr);
     presetManager = std::make_unique<Service::PresetManager>(valueTreeState);
-    if (models.empty()) {
-        models.resize(numModelFiles);
-        unsigned long i = 0;
-        for (double gain = 1.0; gain <= 10.0; gain += 0.5) {
-            loadModel(1, gain, i);
-            i++;
-        }
-        for (double gain = 1.0; gain <= 10.0; gain += 0.5) {
-            loadModel(2, gain, i);
-            i++;
-        }
-    }
-    
+
+    // Initialize shared resources only once across all instances
+    DBG("=== Creating EqAudioProcessor instance ===");
+    std::call_once(modelsInitFlag, &EqAudioProcessor::initializeSharedModels);
+    std::call_once(irsInitFlag, &EqAudioProcessor::initializeSharedIRs);
+    DBG("=== After call_once: models.size()=" << models.size() << ", factoryIRs.size()=" << factoryIRs.size() << " ===");
+
     amp1_dsp = models[0];
     old_model = models[0];
     irIn = new double*[1];
@@ -67,11 +69,6 @@ irResampler(48000.0)
     fftSize = 1024;
     acf.resize(fftSize);
     all_frequencies = generateReferenceFrequencies();
-    factoryIRs.resize(Constants::NUM_IRS);
-    originalFactoryIRs.resize(Constants::NUM_IRS);
-    for (int n = 1; n <= Constants::NUM_IRS; n++) {
-        loadIR(n);
-    }
     mNoiseGateTrigger.AddListener(&mNoiseGateGain);
     userIRDropdown.setTextWhenNothingSelected("Custom IRs");
     irDropdown.setTextWhenNothingSelected("Factory IRs");
@@ -185,6 +182,7 @@ void EqAudioProcessor::loadFactoryPresets(int i) {
 }
 
 void EqAudioProcessor::loadModel(const int amp_idx, double gainLvl, unsigned long i) {
+//    return;
     // Format gain string: replace dot with underscore, or strip .0 for integer gains
     juce::String gainStr = juce::String(gainLvl, 1);
     gainStr = gainStr.replace(".", "_");
@@ -228,7 +226,7 @@ void EqAudioProcessor::loadModel(const int amp_idx, double gainLvl, unsigned lon
                         auto* configDynamicObject = attributeValue.getDynamicObject();
                         juce::String jsonString = juce::JSON::toString(juce::var(configDynamicObject));
                         nlohmann::json jsonObject = nlohmann::json::parse(jsonString.toStdString());
-                        conf.metadata = jsonObject;
+                        conf.config = jsonObject;
                     }
                     else if (attributeName == "weights") {
                         if (attributeValue.isArray()) {
@@ -273,6 +271,36 @@ void EqAudioProcessor::loadIR(const int i, double sampleRate) {
         originalFactoryIRs[i-1] = std::make_shared<dsp::ImpulseResponse>(irInfo, sampleRate);
     }
 
+}
+
+void EqAudioProcessor::initializeSharedModels()
+{
+    DBG("=== INITIALIZING SHARED MODELS (should only happen once) ===");
+    const int numModelFiles = 38;
+    models.resize(numModelFiles);
+
+    unsigned long i = 0;
+    for (double gain = 1.0; gain <= 10.0; gain += 0.5) {
+        loadModel(1, gain, i);
+        i++;
+    }
+    for (double gain = 1.0; gain <= 10.0; gain += 0.5) {
+        loadModel(2, gain, i);
+        i++;
+    }
+    DBG("=== SHARED MODELS INITIALIZED: " << models.size() << " models ===");
+}
+
+void EqAudioProcessor::initializeSharedIRs()
+{
+    DBG("=== INITIALIZING SHARED IRs (should only happen once) ===");
+    factoryIRs.resize(Constants::NUM_IRS);
+    originalFactoryIRs.resize(Constants::NUM_IRS);
+
+    for (int n = 1; n <= Constants::NUM_IRS; n++) {
+        loadIR(n);
+    }
+    DBG("=== SHARED IRs INITIALIZED: " << factoryIRs.size() << " IRs ===");
 }
 
 juce::StringArray EqAudioProcessor::loadUserIRsFromDirectory(const juce::String& customIRPath)
@@ -734,8 +762,8 @@ void EqAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::Mid
                 channelData[i] = yGlobalEQ;
             }
         }
-//        float reverbMix = valueTreeState.getParameterAsValue("reverb").getValue();
-//        Hall->wet = 3.0*reverbMix/1.6666666666667;
+        float reverbMix = valueTreeState.getParameterAsValue("reverb").getValue();
+        Hall->wet = 3.0*reverbMix/1.6666666666667;
 //        if (Hall->wet > 0.0) {
 //            if (totalNumInputChannels > 1) {
 //                applyReverb(Hall, chL, chR, reverbWetL, reverbWetR, &reverbWp, buffer.getNumSamples(), Constants::BUFFERSIZE, 2);

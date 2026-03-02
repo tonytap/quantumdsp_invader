@@ -857,6 +857,7 @@ private:
                     if (audioProcessor.justOpenedPreset) {
                         audioProcessor.justOpenedPreset = false;
                         activateDropdown(button, isEdited);
+                        audioProcessor.presetVisibility = true;
                     }
                     else {
                         audioProcessor.presetVisibility = !audioProcessor.presetVisibility;
