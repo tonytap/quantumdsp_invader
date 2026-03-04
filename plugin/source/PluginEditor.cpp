@@ -94,27 +94,44 @@ void EqAudioProcessorEditor::buttonClicked(juce::Button *button) {
         // Get the AudioDeviceManager
         auto& deviceManager = pluginHolder->deviceManager;
 
-        // Create the AudioDeviceSelectorComponent
-        auto* audioSettingsComp = new juce::AudioDeviceSelectorComponent(
-            deviceManager,
-            0, 2,  // Min/max input channels
-            0, 2,  // Min/max output channels
-            false,  // Show input channels
-            false,  // Show output channels
-            false,  // Show sample rate selector
-            false
-        );
+        // Wrapper component: Mute Input toggle + AudioDeviceSelectorComponent
+        struct SettingsPanel : public juce::Component
+        {
+            SettingsPanel(juce::AudioDeviceManager& dm, juce::Value muteVal, juce::LookAndFeel* laf)
+                : deviceSelector(dm, 0, 2, 0, 2, false, false, false, false), muteLabel("", "Mute Input:"), muteButton("Mute audio input to avoid feedback")
+            {
+                muteButton.getToggleStateValue().referTo(muteVal);
+                muteButton.setLookAndFeel(laf);
+                deviceSelector.setLookAndFeel(laf);
+                addAndMakeVisible(muteButton);
+                addAndMakeVisible(deviceSelector);
+                addAndMakeVisible(muteLabel);
+                muteLabel.attachToComponent(&muteButton, true);
+                setSize(500, 400);
+            }
+            void resized() override
+            {
+                auto area = getLocalBounds().reduced(10);
+                auto muteArea = area.removeFromTop(30);
+                muteButton.setBounds(muteArea.removeFromRight(300).reduced(5));
+                area.removeFromTop(5);
+                deviceSelector.setBounds(area);
+            }
+            juce::Label muteLabel;
+            juce::ToggleButton muteButton;
+            juce::AudioDeviceSelectorComponent deviceSelector;
+        };
 
-        audioSettingsComp->setLookAndFeel(&customLookAndFeel1);
-        audioSettingsComp->setSize(500, 550);
+        auto* panel = new SettingsPanel(deviceManager, pluginHolder->getMuteInputValue(), &customLookAndFeel1);
+
         // Create a dialog window to display the settings
         juce::DialogWindow::LaunchOptions options;
-        options.content.setOwned(audioSettingsComp); // Attach the settings component
-        options.dialogTitle = TRANS("Settings"); // Set dialog title
+        options.content.setOwned(panel);
+        options.dialogTitle = TRANS("Settings");
         options.dialogBackgroundColour = Constants::darkBackgroundColour;
-        options.escapeKeyTriggersCloseButton = true; // Close on escape key
-        options.useNativeTitleBar = true; // Use native title bar
-        options.resizable = false; // Non-resizable dialog
+        options.escapeKeyTriggersCloseButton = true;
+        options.useNativeTitleBar = true;
+        options.resizable = false;
 
         // Launch the dialog asynchronously
         options.launchAsync();

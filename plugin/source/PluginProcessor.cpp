@@ -13,12 +13,7 @@
 #include <mutex>
 
 //==============================================================================
-// Define static shared resources
-std::vector<std::shared_ptr<nam::DSP>> EqAudioProcessor::models;
-std::vector<std::shared_ptr<dsp::ImpulseResponse>> EqAudioProcessor::factoryIRs;
-std::vector<std::shared_ptr<dsp::ImpulseResponse>> EqAudioProcessor::originalFactoryIRs;
-std::once_flag EqAudioProcessor::modelsInitFlag;
-std::once_flag EqAudioProcessor::irsInitFlag;
+// No more static shared resources for models and IRs - each instance gets its own
 
 //==============================================================================
 EqAudioProcessor::EqAudioProcessor()
@@ -55,11 +50,11 @@ irResampler(48000.0)
     valueTreeState.state.setProperty("presetPath", "", nullptr);
     presetManager = std::make_unique<Service::PresetManager>(valueTreeState);
 
-    // Initialize shared resources only once across all instances
+    // Initialize per-instance resources (each instance gets its own models and IRs)
     DBG("=== Creating EqAudioProcessor instance ===");
-    std::call_once(modelsInitFlag, &EqAudioProcessor::initializeSharedModels);
-    std::call_once(irsInitFlag, &EqAudioProcessor::initializeSharedIRs);
-    DBG("=== After call_once: models.size()=" << models.size() << ", factoryIRs.size()=" << factoryIRs.size() << " ===");
+    initializeModels();
+    initializeIRs();
+    DBG("=== After initialization: models.size()=" << models.size() << ", factoryIRs.size()=" << factoryIRs.size() << " ===");
 
     amp1_dsp = models[0];
     old_model = models[0];
@@ -273,9 +268,9 @@ void EqAudioProcessor::loadIR(const int i, double sampleRate) {
 
 }
 
-void EqAudioProcessor::initializeSharedModels()
+void EqAudioProcessor::initializeModels()
 {
-    DBG("=== INITIALIZING SHARED MODELS (should only happen once) ===");
+    DBG("=== INITIALIZING PER-INSTANCE MODELS ===");
     const int numModelFiles = 38;
     models.resize(numModelFiles);
 
@@ -288,19 +283,19 @@ void EqAudioProcessor::initializeSharedModels()
         loadModel(2, gain, i);
         i++;
     }
-    DBG("=== SHARED MODELS INITIALIZED: " << models.size() << " models ===");
+    DBG("=== PER-INSTANCE MODELS INITIALIZED: " << models.size() << " models ===");
 }
 
-void EqAudioProcessor::initializeSharedIRs()
+void EqAudioProcessor::initializeIRs()
 {
-    DBG("=== INITIALIZING SHARED IRs (should only happen once) ===");
+    DBG("=== INITIALIZING PER-INSTANCE IRs ===");
     factoryIRs.resize(Constants::NUM_IRS);
     originalFactoryIRs.resize(Constants::NUM_IRS);
 
     for (int n = 1; n <= Constants::NUM_IRS; n++) {
         loadIR(n);
     }
-    DBG("=== SHARED IRs INITIALIZED: " << factoryIRs.size() << " IRs ===");
+    DBG("=== PER-INSTANCE IRs INITIALIZED: " << factoryIRs.size() << " IRs ===");
 }
 
 juce::StringArray EqAudioProcessor::loadUserIRsFromDirectory(const juce::String& customIRPath)
@@ -764,29 +759,29 @@ void EqAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::Mid
         }
         float reverbMix = valueTreeState.getParameterAsValue("reverb").getValue();
         Hall->wet = 3.0*reverbMix/1.6666666666667;
-//        if (Hall->wet > 0.0) {
-//            if (totalNumInputChannels > 1) {
-//                applyReverb(Hall, chL, chR, reverbWetL, reverbWetR, &reverbWp, buffer.getNumSamples(), Constants::BUFFERSIZE, 2);
-//                for (int i = 0; i < buffer.getNumSamples(); i++) {
-//                    chL[i] += reverbWetL[reverbRp];
-//                    chR[i] += reverbWetR[reverbRp];
-//                    reverbRp++;
-//                    if (reverbRp >= Constants::BUFFERSIZE) {
-//                        reverbRp = 0;
-//                    }
-//                }
-//            }
-//            else {
-//                applyReverb(Hall, chL, chL, reverbWetL, reverbWetR, &reverbWp, buffer.getNumSamples(), Constants::BUFFERSIZE, 1);
-//                for (int i = 0; i < buffer.getNumSamples(); i++) {
-//                    chL[i] += reverbWetL[reverbRp];
-//                    reverbRp++;
-//                    if (reverbRp >= Constants::BUFFERSIZE) {
-//                        reverbRp = 0;
-//                    }
-//                }
-//            }
-//        }
+        if (Hall->wet > 0.0) {
+            if (totalNumInputChannels > 1) {
+                applyReverb(Hall, chL, chR, reverbWetL, reverbWetR, &reverbWp, buffer.getNumSamples(), Constants::BUFFERSIZE, 2);
+                for (int i = 0; i < buffer.getNumSamples(); i++) {
+                    chL[i] += reverbWetL[reverbRp];
+                    chR[i] += reverbWetR[reverbRp];
+                    reverbRp++;
+                    if (reverbRp >= Constants::BUFFERSIZE) {
+                        reverbRp = 0;
+                    }
+                }
+            }
+            else {
+                applyReverb(Hall, chL, chL, reverbWetL, reverbWetR, &reverbWp, buffer.getNumSamples(), Constants::BUFFERSIZE, 1);
+                for (int i = 0; i < buffer.getNumSamples(); i++) {
+                    chL[i] += reverbWetL[reverbRp];
+                    reverbRp++;
+                    if (reverbRp >= Constants::BUFFERSIZE) {
+                        reverbRp = 0;
+                    }
+                }
+            }
+        }
 
         // DELAY (after reverb, before output gain)
         if (auto* playHead = getPlayHead())
