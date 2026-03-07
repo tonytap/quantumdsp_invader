@@ -910,14 +910,14 @@ bool EqAudioProcessor::hasEditor() const
 
 juce::AudioProcessorEditor* EqAudioProcessor::createEditor()
 {
-    if(wrapperType == wrapperType_Standalone)
-    {
-        if(TopLevelWindow::getNumTopLevelWindows() == 1)
-        {
-            TopLevelWindow* w = TopLevelWindow::getTopLevelWindow(0);
-            w->setUsingNativeTitleBar(true);
-        }
-    }
+//    if(wrapperType == wrapperType_Standalone)
+//    {
+//        if(TopLevelWindow::getNumTopLevelWindows() == 1)
+//        {
+//            TopLevelWindow* w = TopLevelWindow::getTopLevelWindow(0);
+//            w->setUsingNativeTitleBar(true);
+//        }
+//    }
     return new EqAudioProcessorEditor (*this, valueTreeState);
 }
 
