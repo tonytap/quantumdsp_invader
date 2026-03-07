@@ -54,18 +54,18 @@ EqAudioProcessorEditor::EqAudioProcessorEditor (EqAudioProcessor& p, juce::Audio
     licenseChecker.setVisible(audioProcessor.licenseVisibility.load());
     
     // Set default buffer size to 128 on first launch (standalone only)
-    if (juce::JUCEApplicationBase::isStandaloneApp()) {
-        auto& state = valueTreeState.state;
-        if (!state.hasProperty("bufferSizeInitialized")) {
-            if (auto* pluginHolder = juce::StandalonePluginHolder::getInstance()) {
-                auto& deviceManager = pluginHolder->deviceManager;
-                auto currentSetup = deviceManager.getAudioDeviceSetup();
-                currentSetup.bufferSize = 128;
-                deviceManager.setAudioDeviceSetup(currentSetup, true);
-                state.setProperty("bufferSizeInitialized", true, nullptr);
-            }
-        }
-    }
+//    if (juce::JUCEApplicationBase::isStandaloneApp()) {
+//        auto& state = valueTreeState.state;
+//        if (!state.hasProperty("bufferSizeInitialized")) {
+//            if (auto* pluginHolder = juce::StandalonePluginHolder::getInstance()) {
+//                auto& deviceManager = pluginHolder->deviceManager;
+//                auto currentSetup = deviceManager.getAudioDeviceSetup();
+//                currentSetup.bufferSize = 128;
+//                deviceManager.setAudioDeviceSetup(currentSetup, true);
+//                state.setProperty("bufferSizeInitialized", true, nullptr);
+//            }
+//        }
+//    }
 
     // Register as listener to state changes
     valueTreeState.state.addListener(this);
@@ -88,53 +88,54 @@ void EqAudioProcessorEditor::setProportion() {
 
 void EqAudioProcessorEditor::buttonClicked(juce::Button *button) {
     if (button == &settingsButton) {
-        // Access the StandalonePluginHolder
-        StandalonePluginHolder* pluginHolder = juce::StandalonePluginHolder::getInstance();
-
-        // Get the AudioDeviceManager
-        auto& deviceManager = pluginHolder->deviceManager;
-
-        // Wrapper component: Mute Input toggle + AudioDeviceSelectorComponent
-        struct SettingsPanel : public juce::Component
-        {
-            SettingsPanel(juce::AudioDeviceManager& dm, juce::Value muteVal, juce::LookAndFeel* laf)
-                : deviceSelector(dm, 0, 2, 0, 2, false, false, false, false), muteLabel("", "Mute Input:"), muteButton("Mute audio input to avoid feedback")
-            {
-                muteButton.getToggleStateValue().referTo(muteVal);
-                muteButton.setLookAndFeel(laf);
-                deviceSelector.setLookAndFeel(laf);
-                addAndMakeVisible(muteButton);
-                addAndMakeVisible(deviceSelector);
-                addAndMakeVisible(muteLabel);
-                muteLabel.attachToComponent(&muteButton, true);
-                setSize(500, 400);
-            }
-            void resized() override
-            {
-                auto area = getLocalBounds().reduced(10);
-                auto muteArea = area.removeFromTop(30);
-                muteButton.setBounds(muteArea.removeFromRight(300).reduced(5));
-                area.removeFromTop(5);
-                deviceSelector.setBounds(area);
-            }
-            juce::Label muteLabel;
-            juce::ToggleButton muteButton;
-            juce::AudioDeviceSelectorComponent deviceSelector;
-        };
-
-        auto* panel = new SettingsPanel(deviceManager, pluginHolder->getMuteInputValue(), &customLookAndFeel1);
-
-        // Create a dialog window to display the settings
-        juce::DialogWindow::LaunchOptions options;
-        options.content.setOwned(panel);
-        options.dialogTitle = TRANS("Settings");
-        options.dialogBackgroundColour = Constants::darkBackgroundColour;
-        options.escapeKeyTriggersCloseButton = true;
-        options.useNativeTitleBar = true;
-        options.resizable = false;
-
-        // Launch the dialog asynchronously
-        options.launchAsync();
+        return;
+//        // Access the StandalonePluginHolder
+//        StandalonePluginHolder* pluginHolder = juce::StandalonePluginHolder::getInstance();
+//
+//        // Get the AudioDeviceManager
+//        auto& deviceManager = pluginHolder->deviceManager;
+//
+//        // Wrapper component: Mute Input toggle + AudioDeviceSelectorComponent
+//        struct SettingsPanel : public juce::Component
+//        {
+//            SettingsPanel(juce::AudioDeviceManager& dm, juce::Value muteVal, juce::LookAndFeel* laf)
+//                : deviceSelector(dm, 0, 2, 0, 2, false, false, false, false), muteLabel("", "Mute Input:"), muteButton("Mute audio input to avoid feedback")
+//            {
+//                muteButton.getToggleStateValue().referTo(muteVal);
+//                muteButton.setLookAndFeel(laf);
+//                deviceSelector.setLookAndFeel(laf);
+//                addAndMakeVisible(muteButton);
+//                addAndMakeVisible(deviceSelector);
+//                addAndMakeVisible(muteLabel);
+//                muteLabel.attachToComponent(&muteButton, true);
+//                setSize(500, 400);
+//            }
+//            void resized() override
+//            {
+//                auto area = getLocalBounds().reduced(10);
+//                auto muteArea = area.removeFromTop(30);
+//                muteButton.setBounds(muteArea.removeFromRight(300).reduced(5));
+//                area.removeFromTop(5);
+//                deviceSelector.setBounds(area);
+//            }
+//            juce::Label muteLabel;
+//            juce::ToggleButton muteButton;
+//            juce::AudioDeviceSelectorComponent deviceSelector;
+//        };
+//
+//        auto* panel = new SettingsPanel(deviceManager, pluginHolder->getMuteInputValue(), &customLookAndFeel1);
+//
+//        // Create a dialog window to display the settings
+//        juce::DialogWindow::LaunchOptions options;
+//        options.content.setOwned(panel);
+//        options.dialogTitle = TRANS("Settings");
+//        options.dialogBackgroundColour = Constants::darkBackgroundColour;
+//        options.escapeKeyTriggersCloseButton = true;
+//        options.useNativeTitleBar = true;
+//        options.resizable = false;
+//
+//        // Launch the dialog asynchronously
+//        options.launchAsync();
     }
     else if (button == &licenseButton) {
         if (!audioProcessor.licenseVisibility.load())
